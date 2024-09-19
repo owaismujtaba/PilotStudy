@@ -70,12 +70,24 @@ class XDFData:
         self.data, self.header = pyxdf.load_xdf(self.filepath)
 
     def findDataStreamIndexs(self):
+<<<<<<< HEAD
         for index in range(len(self.data)):
             if self.data[index]['info']['name'][0] == 'SingleWordsMarkerStream':
                 self.markersIndex = index
             elif self.data[index]['info']['type'][0] == 'EEG':
                 self.eegDataIndex = index
             elif self.data[index]['info']['type'][0] == 'Audio':
+=======
+        for index, stream in enumerate(self.data):
+            streamType = stream['info']['type'][0]
+            streamName = stream['info']['name'][0]
+
+            if streamName == 'SingleWordsMarkerStream':
+                self.markersIndex = index
+            elif streamType == 'EEG':
+                self.eegDataIndex = index
+            elif streamType == 'Audio':
+>>>>>>> c795abf7c0b1f27be755a6eacc7ee7e5ba9cd311
                 self.audioDataIndex = index
 
     def setupData(self,):
@@ -149,6 +161,7 @@ class XDFData:
         description = []
         duration = []
         markers = self.markers
+<<<<<<< HEAD
         markersTimestamps = self.markersTimestamps - self.eegTimestamps[0]
         for index in range(len(markers)-1):
             marker = markers[index]
@@ -211,6 +224,74 @@ class XDFData:
             duration.append(markersTimestamps[index+1]-markersTimestamps[index])
 
         return onset, codes, duration
+=======
+        markerTimestamps = self.markersTimestamps - self.eegTimestamps[0]
+        for index in range(len(markers) - 1):
+            marker = markers[index]
+            code = self.buildCodeFromMarker(marker)
+            codes.append(code)
+            onset.append(markerTimestamps[index])
+            description.append(marker)
+            duration.append(markerTimestamps[index + 1] - markerTimestamps[index])
+
+        return onset, codes, duration
+
+    def buildCodeFromMarker(self, marker):
+        codeComponents = [
+            self.getSpeechType(marker),
+            self.getWordType(marker),
+            self.getExperimentPhase(marker),
+            self.getEventType(marker),
+            self.getTrialPhase(marker),
+            self.getStimulusType(marker)
+        ]
+        code = ','.join(codeComponents)
+        wordOrSyllable = marker.split(':')[1].split('_')[1]
+        return f"{code},{wordOrSyllable}"
+
+    def getSpeechType(self, marker):
+        if 'Silent' in marker:
+            return 'Silent'
+        elif 'Real' in marker:
+            return 'Overt'
+        return ''
+
+    def getWordType(self, marker):
+        if 'Word' in marker:
+            return 'Word'
+        elif 'Syllable' in marker:
+            return 'Syllable'
+        return ''
+
+    def getExperimentPhase(self, marker):
+        if 'Practice' in marker:
+            return 'Practice'
+        elif 'Experiment' in marker:
+            return 'Experiment'
+        return ''
+
+    def getEventType(self, marker):
+        if 'Start' in marker:
+            return 'Start'
+        elif 'End' in marker:
+            return 'End'
+        return ''
+
+    def getTrialPhase(self, marker):
+        for phase in ['Fixation', 'Stimulus', 'ISI', 'ITI', 'Speech']:
+            if phase in marker:
+                return phase
+        return ''
+
+    def getStimulusType(self, marker):
+        if 'Audio' in marker:
+            return 'Audio'
+        elif 'Text' in marker:
+            return 'Text'
+        elif 'Pictures' in marker:
+            return 'Picture'
+        return ''
+>>>>>>> c795abf7c0b1f27be755a6eacc7ee7e5ba9cd311
     
     def makeAnnotations(self):
         """
@@ -310,6 +391,7 @@ class XDFData:
 
         with open(filepath, 'w') as file:
             json.dump(data, file, indent=4)
+<<<<<<< HEAD
 
 
 class SyllableDataProcessor:
@@ -343,3 +425,5 @@ class SyllableDataProcessor:
         else:
             return None
         
+=======
+>>>>>>> c795abf7c0b1f27be755a6eacc7ee7e5ba9cd311
