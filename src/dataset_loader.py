@@ -4,6 +4,7 @@ from mne_bids import BIDSPath, read_raw_bids
 import numpy as np
 import pandas as pd
 import pdb
+import json
 from pathlib import Path
 import os
 
@@ -70,6 +71,8 @@ class NeuralDataset:
         )
 
         self.rawData = read_raw_bids(self.bidsFilepath)
+        self.rawData.load_data()
+        self.resetDataToOriginal()
         self.events, self.eventIds = mne.events_from_annotations(self.rawData, verbose=False)
         self.eventIdsReversed = {str(value): key for key, value in self.eventIds.items()}
         
@@ -78,6 +81,21 @@ class NeuralDataset:
         self.extractEegDataForWords()
         self.extractEegDataForSyllables()
 
+    def resetDataToOriginal(self):
+        """
+        Reset the data to the original values using the normalization info from the json sidecar file.
+        """
+        print("Resetting data to original")
+        jsonSidecarFilename = 'sub-'+self.subjectId+'_ses-'+self.sessionId+'_task-'+self.taskName+'_run-'+self.runId+'_eeg.json'
+        jsonSidecarPath = Path(self.bidsDir, 'sub-'+self.subjectId, 'ses-'+self.sessionId, 'eeg', jsonSidecarFilename)
+        with open(jsonSidecarPath, 'r') as f:
+            data = json.load(f)
+        normalizationInfo = data['Normalization(min, max)']
+        minVal, maxVal = normalizationInfo.split(',')
+        minVal = float(minVal)
+        maxVal = float(maxVal)
+        self.rawData.apply_function(lambda x: x * (maxVal - minVal) + minVal)
+            
     def _getListOfSyllablesAndWords(self):
         """
         Get the list of syllables and words from the event IDs.
