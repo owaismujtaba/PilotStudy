@@ -1,7 +1,7 @@
 import pdb
 from src.bids_dataset import XDFData
 import src.config as config
-from src.dataset_loader import SyllableDataset
+from src.dataset_loader import WordSyllableDatasetExtractor
 
 filepath='RawData/EEG/sub-P014/ses-S001/eeg/sub-P014_ses-S001_task-Default_run-001_eeg.xdf'
 subjectId = '01'
@@ -12,7 +12,7 @@ print(f'Subject Id:: {subjectId} Session Id:: {sessionId}')
 
 
 if config.loadData:
-    obj = SyllableDataset()
+    obj = WordSyllableDatasetExtractor()
 
     pdb.set_trace()
 if config.createBIDSFile:
