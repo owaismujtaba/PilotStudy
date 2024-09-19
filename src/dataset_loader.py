@@ -2,6 +2,7 @@ import src.config as config
 import mne
 from mne_bids import BIDSPath, read_raw_bids
 import numpy as np
+import pandas as pd
 import pdb
 from pathlib import Path
 import os
@@ -326,3 +327,20 @@ class WordSyllableDatasetExtractor:
             np.save(self.destinationPath, syllableData)
         
 
+def extractWordSyllableDataForAllSubjects():
+    rootDir = Path(config.bidsDir)
+
+    for subject in [dir for dir in os.listdir(rootDir) if os.path.isdir(Path(rootDir, dir))]:
+        subjectPath = Path(rootDir, subject)
+        for session in  [dir for dir in os.listdir(subjectPath) if os.path.isdir(Path(subjectPath, dir))]:
+            subjectId = subject.split('-')[-1]
+            sessionId = session.split('-')[-1]
+            runId = '01'
+            taskName = 'PilotStudy'
+            print(f"Extracting data for subject {subjectId}, session {sessionId}")
+            obj = WordSyllableDatasetExtractor(
+                subjectId=subjectId, 
+                sessionId=sessionId, 
+                runId=runId, 
+                taskName=taskName
+            )
