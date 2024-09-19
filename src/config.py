@@ -3,9 +3,9 @@ from pathlib import Path
 
 
 createBIDSFile = True
-loadData = True
+loadData = False
 
 currDir = os.getcwd()
-rawDataDir = Path(currDir, 'RawData', 'EEG')
+rawDataDir = Path(currDir, 'RawData')
 bidsDir = Path(currDir, 'BIDS')
 

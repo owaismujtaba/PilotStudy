@@ -3,7 +3,7 @@ from src.bids_dataset import XDFData
 import src.config as config
 from src.dataset_loader import SyllableDataset
 
-filepath='RawData/EEG/sub-P014/ses-S001/eeg/sub-P014_ses-S001_task-Default_run-001_eeg.xdf'
+filepath='RawData\sub-P001\ses-S001\eeg\sub-P001_ses-S001_task-Default_run-001_eeg.xdf'
 subjectId = '01'
 sessionId = '01'
 runId = '01'
