@@ -37,8 +37,6 @@ class XDFData:
 
         Returns: None
         """
-
-
         self.filepath = filepath
         self.subjectId = subjectId
         self.sessionId = sessionId
@@ -57,7 +55,7 @@ class XDFData:
         self.setupData()
         self.printInfo()
         
-        self.createMNEObjectForEEG()
+        self.createMneRawObjectForEeg()
         self.makeAnnotations()
         
         self.createEDFFile()
@@ -66,10 +64,16 @@ class XDFData:
         self.addNormalizationInfoToSidecar()
         
     def loadXdfData(self):
+        """
+        Load XDF data from the file.
+        """
         print('Loading XDF Data')
         self.data, self.header = pyxdf.load_xdf(self.filepath)
 
     def findDataStreamIndexs(self):
+        """
+        Find and set the indices for different data streams in the XDF file.
+        """
         for index, stream in enumerate(self.data):
             streamType = stream['info']['type'][0]
             streamName = stream['info']['name'][0]
@@ -81,7 +85,7 @@ class XDFData:
             elif streamType == 'Audio':
                 self.audioDataIndex = index
 
-    def setupData(self,):
+    def setupData(self):
         """
         Extract EEG, markers, and audio data from the XDF file.
         Set up channel names and timestamps.
@@ -105,13 +109,16 @@ class XDFData:
             self.eegChannelNames.append(item['label'][0]) 
     
     def printInfo(self):
+        """
+        Print information about the loaded data.
+        """
         print(f'No of Markers: {len(self.markers)} No .of Marker Timestamps: {self.markersTimestamps.shape[0]}')
         print(f'EEG data Shape: {self.eegData.shape} No .of eeg Timestamps: {self.eegTimestamps.shape[0]}')
         print(f'Audio data Shape: {self.audioData.shape} No .of audio Timestamps: {self.audioTimestamps.shape[0]}')
         print('EEG Channels:', self.eegChannelNames)
         print(f'Sampling Frequency ::: EEG: {self.eegSamplingFrequency}, Audio: {self.audioSamplingFrequency}')
     
-    def createMNEObjectForEEG(self):
+    def createMneRawObjectForEeg(self):
         """
         Create an MNE Raw object for EEG data to facilitate further processing.
         The EEG data is normalized and converted to MNE format.
@@ -123,7 +130,6 @@ class XDFData:
             ch_names=self.eegChannelNames, 
             sfreq=self.eegSamplingFrequency, 
             ch_types='eeg',
-
         )
         info.set_meas_date(meas_date)
         self.normalizeDataToInt16()
@@ -164,6 +170,15 @@ class XDFData:
         return onset, codes, duration
 
     def buildCodeFromMarker(self, marker):
+        """
+        Build a code from a marker.
+
+        Parameters:
+        - marker (str): The marker to build the code from.
+
+        Returns:
+        - str: The built code.
+        """
         codeComponents = [
             self.getSpeechType(marker),
             self.getWordType(marker),
@@ -177,6 +192,15 @@ class XDFData:
         return f"{code},{wordOrSyllable}"
 
     def getSpeechType(self, marker):
+        """
+        Get the speech type from a marker.
+
+        Parameters:
+        - marker (str): The marker to extract the speech type from.
+
+        Returns:
+        - str: The speech type.
+        """
         if 'Silent' in marker:
             return 'Silent'
         elif 'Real' in marker:
@@ -184,6 +208,15 @@ class XDFData:
         return ''
 
     def getWordType(self, marker):
+        """
+        Get the word type from a marker.
+
+        Parameters:
+        - marker (str): The marker to extract the word type from.
+
+        Returns:
+        - str: The word type.
+        """
         if 'Word' in marker:
             return 'Word'
         elif 'Syllable' in marker:
@@ -191,6 +224,15 @@ class XDFData:
         return ''
 
     def getExperimentPhase(self, marker):
+        """
+        Get the experiment phase from a marker.
+
+        Parameters:
+        - marker (str): The marker to extract the experiment phase from.
+
+        Returns:
+        - str: The experiment phase.
+        """
         if 'Practice' in marker:
             return 'Practice'
         elif 'Experiment' in marker:
@@ -198,6 +240,15 @@ class XDFData:
         return ''
 
     def getEventType(self, marker):
+        """
+        Get the event type from a marker.
+
+        Parameters:
+        - marker (str): The marker to extract the event type from.
+
+        Returns:
+        - str: The event type.
+        """
         if 'Start' in marker:
             return 'Start'
         elif 'End' in marker:
@@ -205,12 +256,30 @@ class XDFData:
         return ''
 
     def getTrialPhase(self, marker):
+        """
+        Get the trial phase from a marker.
+
+        Parameters:
+        - marker (str): The marker to extract the trial phase from.
+
+        Returns:
+        - str: The trial phase.
+        """
         for phase in ['Fixation', 'Stimulus', 'ISI', 'ITI', 'Speech']:
             if phase in marker:
                 return phase
         return ''
 
     def getStimulusType(self, marker):
+        """
+        Get the stimulus type from a marker.
+
+        Parameters:
+        - marker (str): The marker to extract the stimulus type from.
+
+        Returns:
+        - str: The stimulus type.
+        """
         if 'Audio' in marker:
             return 'Audio'
         elif 'Text' in marker:
@@ -233,10 +302,12 @@ class XDFData:
         self.codes = codes
         self.duration = duration
 
-
     def createAudio(self):
         """
         Create an audio file from the audio data stored in the XDF file.
+
+        Returns:
+        - Path: The path of the created audio file.
         """
         print('***************************Creating Audio file***************************')
         destinationDir = self.destinationDir / 'audio'
@@ -250,7 +321,8 @@ class XDFData:
         return destinationPath
 
     def ensureDirectoryExists(self, path):
-        """Ensure that the given directory exists.
+        """
+        Ensure that the given directory exists.
 
         Parameters:
         path (Path): The path to check/create.
@@ -262,8 +334,6 @@ class XDFData:
         Write synchronized events to a TSV file. This file contains information about 
         events such as onset times, durations, and event types related to the audio data.
 
-        Parameters: None
-        
         Returns:
         - Path: The path of the created events file.
         """
@@ -298,7 +368,6 @@ class XDFData:
         
         write_raw_bids(data, bids_path=self.bidsPath, allow_preload=True, format='EDF', overwrite=True)
        
-        
         print('***************************BIDS FIF file created***************************')
 
     def addNormalizationInfoToSidecar(self):

@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 createBIDSFile = True
-loadData = True
+loadData = False
 
 currDir = os.getcwd()
 rawDataDir = Path(currDir, 'RawData', 'EEG')
