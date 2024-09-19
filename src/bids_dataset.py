@@ -70,14 +70,6 @@ class XDFData:
         self.data, self.header = pyxdf.load_xdf(self.filepath)
 
     def findDataStreamIndexs(self):
-<<<<<<< HEAD
-        for index in range(len(self.data)):
-            if self.data[index]['info']['name'][0] == 'SingleWordsMarkerStream':
-                self.markersIndex = index
-            elif self.data[index]['info']['type'][0] == 'EEG':
-                self.eegDataIndex = index
-            elif self.data[index]['info']['type'][0] == 'Audio':
-=======
         for index, stream in enumerate(self.data):
             streamType = stream['info']['type'][0]
             streamName = stream['info']['name'][0]
@@ -87,7 +79,6 @@ class XDFData:
             elif streamType == 'EEG':
                 self.eegDataIndex = index
             elif streamType == 'Audio':
->>>>>>> c795abf7c0b1f27be755a6eacc7ee7e5ba9cd311
                 self.audioDataIndex = index
 
     def setupData(self,):
@@ -161,70 +152,6 @@ class XDFData:
         description = []
         duration = []
         markers = self.markers
-<<<<<<< HEAD
-        markersTimestamps = self.markersTimestamps - self.eegTimestamps[0]
-        for index in range(len(markers)-1):
-            marker = markers[index]
-            code = ''
-            if 'Silent' in marker:
-                code += 'Silent,' 
-            elif 'Real' in marker:
-                code += 'Overt,' 
-            else:
-                code += ','
-
-            if 'Word' in marker:
-                code += 'Word,' 
-            elif 'Syllable' in marker:
-                code += 'Syllable,' 
-            else:
-                code += ','
-
-            if 'Practice' in marker:
-                code += 'Practice,' 
-            elif 'Experiment' in marker:
-                code += 'Experiment,' 
-            else:
-                code += ','
-
-            if 'Start' in marker:
-                code += 'Start,' 
-            elif 'End' in marker:
-                code += 'End,' 
-            else:
-                code += ','
-
-            if 'Fixation' in marker:
-                code += 'Fixation,' 
-            elif 'Stimulus' in marker:
-                code += 'Stimulus,' 
-            elif 'ISI' in marker:
-                code += 'ISI,' 
-            elif 'ITI' in marker:
-                code += 'ITI,' 
-            elif 'Speech' in marker:
-                code += 'Speech,' 
-            else:
-                code += ','
-            
-            if 'Audio' in marker:
-                code += 'Audio,'
-            elif 'Text' in marker:
-                code += 'Text,'
-            elif 'Pictures' in marker:
-                code += 'Picture,'
-            else:
-                code += ','
-            wordOrSyllable = marker.split(':')[1].split('_')[1]
-
-            code += wordOrSyllable
-            codes.append(code)
-            onset.append(markersTimestamps[index])
-            description.append(marker)
-            duration.append(markersTimestamps[index+1]-markersTimestamps[index])
-
-        return onset, codes, duration
-=======
         markerTimestamps = self.markersTimestamps - self.eegTimestamps[0]
         for index in range(len(markers) - 1):
             marker = markers[index]
@@ -291,7 +218,6 @@ class XDFData:
         elif 'Pictures' in marker:
             return 'Picture'
         return ''
->>>>>>> c795abf7c0b1f27be755a6eacc7ee7e5ba9cd311
     
     def makeAnnotations(self):
         """
@@ -391,39 +317,3 @@ class XDFData:
 
         with open(filepath, 'w') as file:
             json.dump(data, file, indent=4)
-<<<<<<< HEAD
-
-
-class SyllableDataProcessor:
-    def __init__(self, mneDataObject) -> None:
-        self.data = mneDataObject
-
-
-    def getSyllabelData(self):
-        events, eventIds = mne.events_from_annotations(self.data.rawMNEWithAnnotations, verbose=False)
-        eventIdsReversed = {str(value): key for key, value in eventIds.items()} 
-        codes, eventTimings = [], []
-        for event in events:
-            eventCode = eventIdsReversed.get(str(event[2]), None)
-            if eventCode:
-                code = self._getCode(eventCode)
-                if code:
-                    codes.append(code)
-                    eventTimings.append(event[0])
-        semanticEvents = np.array([[timing, 0, code] for timing, code in zip(eventTimings, codes)])
-        semanticEventIds = {'Silence': 1, 'Real': 2}
-    
-    def _getCode(eventCode):
-        items = eventCode.split(',')
-        if items[3] == '16' and items[4] == '19':
-            if items[0] == '10':
-                return 1
-            elif items[0] == '11':
-                return 2
-            else:
-                return None
-        else:
-            return None
-        
-=======
->>>>>>> c795abf7c0b1f27be755a6eacc7ee7e5ba9cd311
