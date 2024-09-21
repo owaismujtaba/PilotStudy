@@ -2,8 +2,12 @@ import os
 from pathlib import Path
 
 # Functionality
+denormalizeData = True
 createBIDSFile = False
-loadData = True
+extractSyllableWordData = False
+extracctVowelData = True
+
+
 
 # Directories
 currDir = os.getcwd()
@@ -11,6 +15,6 @@ rawDataDir = Path(currDir, 'RawData', 'EEG')
 bidsDir = Path(currDir, 'BIDS')
 dataDir = Path(currDir, 'Data')
 
-
-tmax = 1.0
-tmin = 0.0
+nJobs = 4
+tmax = 1.5
+tmin = -0.5
