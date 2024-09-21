@@ -5,7 +5,7 @@ from pathlib import Path
 denormalizeData = True
 createBIDSFile = False
 extractSyllableWordData = False
-extracctVowelData = True
+trainModels = True
 
 
 
