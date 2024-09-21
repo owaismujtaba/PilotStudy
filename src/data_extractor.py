@@ -55,8 +55,7 @@ class NeuralDatasetExtractor:
             subjectId='01', sessionId='01', runId='01', 
             taskName='PilotStudy', bidsDir=config.bidsDir, 
             speechType=None, languageElement=None,
-            eventType=None, trialPhase=None, presentationMode=None
-        ):
+            eventType=None, trialPhase=None, presentationMode=None):
         
         print("Initializing NeuralDatasetExtractor")
         self.subjectId = subjectId
