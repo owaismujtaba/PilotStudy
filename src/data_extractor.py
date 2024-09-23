@@ -100,6 +100,10 @@ class NeuralDatasetExtractor:
         self.extractEegDataForWords()
         self.extractEegDataForSyllables()
         
+        print('\n' + '*' * 60)
+        print('✅  Initialization Complete  ✅'.center(60))
+        print('*' * 60 + '\n')
+        
     def preprocessData(self):
         """
         Apply preprocessing steps to the raw EEG data.
@@ -121,7 +125,9 @@ class NeuralDatasetExtractor:
         self.rawData = ica.apply(self.rawData)
         self.rawData.set_eeg_reference(ref_channels=['FCz'])
 
-        print("Preprocessing completed")
+        print('\n' + '*' * 60)
+        print('✅  Preprocessing Completed  ✅'.center(60))
+        print('*' * 60 + '\n')
 
     def _getListOfSyllablesAndWords(self):
         """
@@ -157,6 +163,10 @@ class NeuralDatasetExtractor:
                 
         self.syllablesDict = syllables
         self.wordsDict = words
+
+        print('\n' + '*' * 60)
+        print('✅  Syllables and Words Extracted  ✅'.center(60))
+        print('*' * 60 + '\n')
 
     def _getCodeForWord(self, word):
         """
@@ -194,8 +204,7 @@ class NeuralDatasetExtractor:
             self.syllablesInExperiment[syllable] = self.syllablesDict[syllable]
             return self.syllablesDict[syllable]
         return None
-
-
+    
     def _checkSpeechType(self, eventName, speechType):
         """
 
@@ -299,12 +308,12 @@ class NeuralDatasetExtractor:
 
         The resulting Epochs object is stored in self.wordEpochs.
         """
-        print("**************************************************")
+        print('\n' + '*' * 60)
         print("*************Extracting EEG data for words*************")
-        print("**************************************************")
+        print('*' * 60 + '\n')   
+
         codes, eventTimings = [], []
         for event in self.events:
-
             eventName = self.eventIdsReversed[str(event[2])]
             if (self._checkSpeechType(eventName, self.speechType) and 
                 self._checkLanguageElement(eventName, self.languageElement) and 
@@ -324,6 +333,10 @@ class NeuralDatasetExtractor:
                                      tmin=config.tmin, tmax=config.tmax,
                                      baseline=(-0.5, 0), 
                                      picks=self.channels)
+
+        print('\n' + '*' * 60)
+        print('✅  Word EEG Data Extraction Complete  ✅'.center(60))
+        print('*' * 60 + '\n')
 
     def extractEegDataForSyllables(self):
         """
@@ -369,6 +382,10 @@ class NeuralDatasetExtractor:
             event_id=self.syllablesInExperiment, 
             tmin=config.tmin, tmax=config.tmax
         )
+
+        print('\n' + '*' * 60)
+        print('✅  Syllable EEG Data Extraction Complete  ✅'.center(60))
+        print('*' * 60 + '\n')
         
     
 class WordSyllableDataExtractor:
@@ -438,6 +455,10 @@ class WordSyllableDataExtractor:
         self.extractWordData()
         self.extractSyllableData()
 
+        print('\n' + '*' * 60)
+        print('✅  WordSyllableDataExtractor Initialization Complete  ✅'.center(60))
+        print('*' * 60 + '\n')
+
     def extractWordData(self):
         print(f"Extracting word data for subject {self.subjectId}, session {self.sessionId}")
         self.wordDataEpochs = self.neurlDatasetObject.wordEpochs
@@ -449,6 +470,10 @@ class WordSyllableDataExtractor:
             self.destinationPath = Path(wordDir, word+'.npy')
             np.save(self.destinationPath, wordData)
 
+        print('\n' + '*' * 60)
+        print('✅  Word Data Extraction Complete  ✅'.center(60))
+        print('*' * 60 + '\n')
+
     def extractSyllableData(self):
         print(f"Extracting syllable data for subject {self.subjectId}, session {self.sessionId}")
         syllableDir = Path(self.destionationDataDir, 'Syllables')
@@ -459,8 +484,10 @@ class WordSyllableDataExtractor:
             syllableData = self.syllableDataEpochs[syllable].get_data()
             self.destinationPath = Path(syllableDir, syllable+'.npy')
             np.save(self.destinationPath, syllableData)
-        
 
+        print('\n' + '*' * 60)
+        print('✅  Syllable Data Extraction Complete  ✅'.center(60))
+        print('*' * 60 + '\n')
 
 
 def extractWordSyllableDataForAllSubjects(
