@@ -2,6 +2,8 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV
 import src.config as config
+import tensorflow as tf
+from tensorflow.keras import layers, models
 
 class RandomForestModel:
     def __init__(self, 
@@ -79,3 +81,57 @@ class RandomForestModel:
         if self.model is None:
             raise ValueError("Model has not been trained yet.")
         return self.model.best_estimator_.feature_importances_
+
+class Block(tf.keras.layers.Layer):
+    def __init__(self, inplace):
+        super(Block, self).__init__()
+        self.conv1 = layers.Conv1D(32, 2, strides=2, padding='valid')
+        self.conv2 = layers.Conv1D(32, 4, strides=2, padding='same')
+        self.conv3 = layers.Conv1D(32, 8, strides=2, padding='same')
+        self.relu = layers.ReLU()
+
+    def call(self, x):
+        x1 = self.relu(self.conv1(x))
+        x2 = self.relu(self.conv2(x))
+        x3 = self.relu(self.conv3(x))
+        x = tf.concat([x1, x2, x3], axis=-1)
+        return x
+
+class ChronoNet(tf.keras.Model):
+    def __init__(self, channel):
+        super(ChronoNet, self).__init__()
+        self.block1 = Block(channel)
+        self.block2 = Block(96)
+        self.block3 = Block(96)
+        self.gru1 = layers.GRU(32, return_sequences=True)
+        self.gru2 = layers.GRU(32, return_sequences=True)
+        self.gru3 = layers.GRU(32, return_sequences=True)
+        self.gru4 = layers.GRU(32, return_sequences=True)
+        self.gru_linear = layers.Dense(64)
+        self.flatten = layers.Flatten()
+        self.fc1 = layers.Dense(5)
+        self.relu = layers.ReLU()
+
+    def call(self, x):
+        x = self.block1(x)
+        x = self.block2(x)
+        x = self.block3(x)
+        x = tf.transpose(x, perm=[0, 2, 1])
+        gru_out1 = self.gru1(x)
+        gru_out2 = self.gru2(gru_out1)
+        gru_out = tf.concat([gru_out1, gru_out2], axis=-1)
+        gru_out3 = self.gru3(gru_out)
+        gru_out = tf.concat([gru_out1, gru_out2, gru_out3], axis=-1)
+        linear_out = self.relu(self.gru_linear(gru_out))
+        gru_out4 = self.gru4(linear_out)
+        x = self.flatten(gru_out4)
+        x = self.fc1(x)
+        return x
+
+    def train(self, x_train, y_train, epochs=10, batch_size=32):
+        self.fit(x_train, y_train, epochs=epochs, batch_size=batch_size)
+
+    def predict(self, x_test):
+        return self.predict(x_test)
+
+    

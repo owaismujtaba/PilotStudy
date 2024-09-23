@@ -3,9 +3,9 @@ from pathlib import Path
 
 # Functionality
 denormalizeData = True
-createBIDSFile = False
+createBIDSFile = True
 extractSyllableWordData = False
-trainModels = True
+trainModels = False
 
 
 
