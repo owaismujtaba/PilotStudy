@@ -7,16 +7,7 @@ import pdb
 import json
 from pathlib import Path
 import os
-
-import src.config as config
-import mne
-from mne_bids import BIDSPath, read_raw_bids
-import numpy as np
-import pandas as pd
-import pdb
-import json
-from pathlib import Path
-import os
+from src.utils import printSectionFooter, printSectionHeader
 
 class NeuralDatasetExtractor:
     """
@@ -68,7 +59,8 @@ class NeuralDatasetExtractor:
             eventType=None, trialPhase=None, presentationMode=None
         ):
         
-        print("Initializing NeuralDatasetExtractor")
+        printSectionHeader("🚀 Initializing NeuralDatasetExtractor 🚀")
+        
         self.subjectId = subjectId
         self.sessionId = sessionId
         self.runId = runId
@@ -100,9 +92,7 @@ class NeuralDatasetExtractor:
         self.extractEegDataForWords()
         self.extractEegDataForSyllables()
         
-        print('\n' + '*' * 60)
-        print('✅  Initialization Complete  ✅'.center(60))
-        print('*' * 60 + '\n')
+        printSectionFooter("✅  Initialization Complete  ✅")
         
     def preprocessData(self):
         """
@@ -116,7 +106,8 @@ class NeuralDatasetExtractor:
         Returns:
             None
         """
-        print("Applying preprocessing steps to the raw EEG data")
+        printSectionHeader("🔧 Applying preprocessing steps to the raw EEG data 🔧")
+        
         self.rawData.notch_filter([50, 100])
         self.rawData.filter(l_freq=0.1, h_freq=None)
 
@@ -125,9 +116,7 @@ class NeuralDatasetExtractor:
         self.rawData = ica.apply(self.rawData)
         self.rawData.set_eeg_reference(ref_channels=['FCz'])
 
-        print('\n' + '*' * 60)
-        print('✅  Preprocessing Completed  ✅'.center(60))
-        print('*' * 60 + '\n')
+        printSectionFooter("✅  Preprocessing Completed  ✅")
 
     def _getListOfSyllablesAndWords(self):
         """
@@ -143,7 +132,8 @@ class NeuralDatasetExtractor:
 
         Note: This method skips 'silence' events when processing words.
         """
-        print("Getting list of syllables and words")
+        printSectionHeader("📜 Getting list of syllables and words 📜")
+        
         syllables = {}
         words = {}
         syllableIndex = 0
@@ -164,9 +154,7 @@ class NeuralDatasetExtractor:
         self.syllablesDict = syllables
         self.wordsDict = words
 
-        print('\n' + '*' * 60)
-        print('✅  Syllables and Words Extracted  ✅'.center(60))
-        print('*' * 60 + '\n')
+        printSectionFooter("✅  Syllables and Words Extracted  ✅")
 
     def _getCodeForWord(self, word):
         """
@@ -207,12 +195,11 @@ class NeuralDatasetExtractor:
     
     def _checkSpeechType(self, eventName, speechType):
         """
-
         Check if the event is in the speech type.
-
 
         Args:
             eventName (str): The name of the event to check.
+            speechType (str): The type of speech to check against.
 
         Returns:
             bool: True if the event is in the speech type, False otherwise.
@@ -227,9 +214,9 @@ class NeuralDatasetExtractor:
         """
         Check if the event is a word.
 
-
         Args:
             eventName (str): The name of the event to check.
+            languageElement (str): The language element to check against.
 
         Returns:
             bool: True if the event is a word, False otherwise.
@@ -242,12 +229,11 @@ class NeuralDatasetExtractor:
 
     def _checkEventType(self, eventName, eventType):
         """
-
-
         Check if the event is in the experiment phase.
 
         Args:
             eventName (str): The name of the event to check.
+            eventType (str): The type of event to check against.
 
         Returns:
             bool: True if the event is in the experiment phase, False otherwise.
@@ -262,9 +248,9 @@ class NeuralDatasetExtractor:
         """
         Check if the event is in the event phase.
 
-
         Args:
             eventName (str): The name of the event to check.
+            trialPhase (str): The trial phase to check against.
 
         Returns:
             bool: True if the event is in the event phase (i.e., a 'Start' event), False otherwise.
@@ -279,9 +265,9 @@ class NeuralDatasetExtractor:
         """
         Check if the event is in the trial phase.
 
-
         Args:
             eventName (str): The name of the event to check.
+            presentationMode (str): The presentation mode to check against.
 
         Returns:
             bool: True if the event is in one of the trial phases ('Stimulus', 'ISI', 'Speech', 'ITI', 'Fixation'), False otherwise.
@@ -294,7 +280,6 @@ class NeuralDatasetExtractor:
       
 
     def extractEegDataForWords(self):
-
         """
         Extract EEG data for words.
 
@@ -308,10 +293,8 @@ class NeuralDatasetExtractor:
 
         The resulting Epochs object is stored in self.wordEpochs.
         """
-        print('\n' + '*' * 60)
-        print("*************Extracting EEG data for words*************")
-        print('*' * 60 + '\n')   
-
+        printSectionHeader("🧠 Extracting EEG data for words 🧠")
+        
         codes, eventTimings = [], []
         for event in self.events:
             eventName = self.eventIdsReversed[str(event[2])]
@@ -334,9 +317,7 @@ class NeuralDatasetExtractor:
                                      baseline=(-0.5, 0), 
                                      picks=self.channels)
 
-        print('\n' + '*' * 60)
-        print('✅  Word EEG Data Extraction Complete  ✅'.center(60))
-        print('*' * 60 + '\n')
+        printSectionFooter("✅  Word EEG Data Extraction Complete  ✅")
 
     def extractEegDataForSyllables(self):
         """
@@ -352,9 +333,8 @@ class NeuralDatasetExtractor:
 
         The resulting Epochs object is stored in self.syllableEpochs.
         """
-        print("**************************************************")
-        print("*************Extracting EEG data for syllables*************")
-        print("**************************************************")
+        printSectionHeader("🧠 Extracting EEG data for syllables 🧠")
+        
         codes, eventTimings = [], []
 
         for event in self.events:
@@ -383,11 +363,10 @@ class NeuralDatasetExtractor:
             tmin=config.tmin, tmax=config.tmax
         )
 
-        print('\n' + '*' * 60)
-        print('✅  Syllable EEG Data Extraction Complete  ✅'.center(60))
-        print('*' * 60 + '\n')
+        printSectionFooter("✅  Syllable EEG Data Extraction Complete  ✅")
         
     
+
 class WordSyllableDataExtractor:
     """
     A class to extract and save word and syllable data from BIDS-formatted EEG data.
@@ -418,10 +397,11 @@ class WordSyllableDataExtractor:
     def __init__(self, 
             bidsDir=config.bidsDir, subjectId='01', sessionId='01', 
             runId='01', taskName='PilotStudy', 
-            speechType=None,languageElement=None, eventType='Start', trialPhase=None, presentationMode=None
+            speechType=None, languageElement=None, eventType='Start', trialPhase=None, presentationMode=None
         ):
         
-        print(f"Initializing WordSyllableDatasetExtractor with: ")
+        printSectionHeader("🚀 Initializing WordSyllableDatasetExtractor 🚀")
+        
         print(f"bidsDir={bidsDir}, subjectId={subjectId}, sessionId={sessionId}, runId={runId}, taskName={taskName}")
         self.bidsDir = bidsDir
         self.subjectId = subjectId
@@ -439,7 +419,6 @@ class WordSyllableDataExtractor:
             +'_'+str(self.trialPhase)+'_'+str(self.presentationMode)
         )
         self.neurlDatasetObject = NeuralDatasetExtractor(
-
             subjectId=self.subjectId, 
             sessionId=self.sessionId, 
             runId=self.runId, 
@@ -455,29 +434,27 @@ class WordSyllableDataExtractor:
         self.extractWordData()
         self.extractSyllableData()
 
-        print('\n' + '*' * 60)
-        print('✅  WordSyllableDataExtractor Initialization Complete  ✅'.center(60))
-        print('*' * 60 + '\n')
+        printSectionFooter("✅  WordSyllableDataExtractor Initialization Complete  ✅")
 
     def extractWordData(self):
-        print(f"Extracting word data for subject {self.subjectId}, session {self.sessionId}")
+        printSectionHeader(f"📝 Extracting word data for subject {self.subjectId}, session {self.sessionId} 📝")
+        
         self.wordDataEpochs = self.neurlDatasetObject.wordEpochs
         wordDir = Path(self.destionationDataDir, 'Words')
-        print(f"Saving word data to {wordDir}")
+        print(f"💾 Saving word data to {wordDir}")
         os.makedirs(wordDir, exist_ok=True)
         for word, code in self.neurlDatasetObject.wordsInExperiment.items():
             wordData = self.wordDataEpochs[word].get_data()
             self.destinationPath = Path(wordDir, word+'.npy')
             np.save(self.destinationPath, wordData)
 
-        print('\n' + '*' * 60)
-        print('✅  Word Data Extraction Complete  ✅'.center(60))
-        print('*' * 60 + '\n')
+        printSectionFooter("✅  Word Data Extraction Complete  ✅")
 
     def extractSyllableData(self):
-        print(f"Extracting syllable data for subject {self.subjectId}, session {self.sessionId}")
+        printSectionHeader(f"📝 Extracting syllable data for subject {self.subjectId}, session {self.sessionId} 📝")
+        
         syllableDir = Path(self.destionationDataDir, 'Syllables')
-        print(f"Saving syllable data to {syllableDir}")
+        print(f"💾 Saving syllable data to {syllableDir}")
         os.makedirs(syllableDir, exist_ok=True)
         self.syllableDataEpochs = self.neurlDatasetObject.syllableEpochs
         for syllable, code in self.neurlDatasetObject.syllablesInExperiment.items():
@@ -485,9 +462,7 @@ class WordSyllableDataExtractor:
             self.destinationPath = Path(syllableDir, syllable+'.npy')
             np.save(self.destinationPath, syllableData)
 
-        print('\n' + '*' * 60)
-        print('✅  Syllable Data Extraction Complete  ✅'.center(60))
-        print('*' * 60 + '\n')
+        printSectionFooter("✅  Syllable Data Extraction Complete  ✅")
 
 
 def extractWordSyllableDataForAllSubjects(
@@ -514,14 +489,18 @@ def extractWordSyllableDataForAllSubjects(
         subjectPath = Path(rootDir, subject)
         for session in [dir for dir in os.listdir(subjectPath) if os.path.isdir(Path(subjectPath, dir))]:
             subjectId = subject.split('-')[-1]
-            
             sessionId = session.split('-')[-1]
             runId = '01'  # Assuming a fixed run ID
             taskName = 'PilotStudy'  # Assuming a fixed task name
 
-            print(f"Extracting data for subject {subjectId}, session {sessionId}")
-            print(f"speechType={speechType}, languageElement={languageElement}")
-            print(f"eventType={eventType}, trialPhase={trialPhase}, presentationMode={presentationMode}")
+            printSectionHeader(f"📊 Extracting data for subject {subjectId}, session {sessionId} 📊")
+            print(f"Parameters:".center(60))
+            print(f"Speech Type: {speechType}".center(60))
+            print(f"Language Element: {languageElement}".center(60))
+            print(f"Event Type: {eventType}".center(60))
+            print(f"Trial Phase: {trialPhase}".center(60))
+            print(f"Presentation Mode: {presentationMode}".center(60))
+            print("=" * 60 + "\n")
             
             wordSyllableDataExtractor = WordSyllableDataExtractor(
                 bidsDir=config.bidsDir,

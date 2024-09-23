@@ -3,6 +3,7 @@ from pathlib import Path
 import pdb
 import numpy as np
 import src.config as config
+from src.utils import printSectionFooter, printSectionHeader
 
 
 class VowelDataset:
@@ -11,9 +12,7 @@ class VowelDataset:
             speechType=None, languageElement=None,
             eventType='Start', trialPhase=None, presentationMode=None
         ):
-        print('\n' + '=' * 60)
-        print('🚀 Initializing VowelDataset 🚀'.center(60))
-        print('=' * 60 + '\n')
+        printSectionHeader("🚀 Initializing VowelDataset 🚀")
 
         self.subjectId = subjectId
 
@@ -33,14 +32,10 @@ class VowelDataset:
         self.categorizedSyllablePaths = self.categorizeSyllables()
         self.vowelData = self.loadVowelData()
 
-        print('\n' + '=' * 60)
-        print('✅  VowelDataset Initialization Complete  ✅'.center(60))
-        print('=' * 60 + '\n')
+        printSectionFooter("✅  VowelDataset Initialization Complete  ✅")
 
     def categorizeSyllables(self):
-        print('\n' + '=' * 60)
-        print('📂 Loading paths for categorized Vowel syllables 📂'.center(60))
-        print('=' * 60 + '\n')
+        printSectionHeader("📂 Loading paths for categorized Vowel syllables 📂")
 
         categorized = {vowel: [] for vowel in self.vowelCategories}
         for filepath in self.syllableFilepaths:
@@ -51,16 +46,12 @@ class VowelDataset:
                     categorized[vowel].append(filepath)
                     break
 
-        print('\n' + '=' * 60)
-        print('✅  Categorization Complete  ✅'.center(60))
-        print('=' * 60 + '\n')
+        printSectionFooter("✅  Categorization Complete  ✅")
         return categorized
 
 
     def getNumpyFilepaths(self, dataDir):
-        print('\n' + '=' * 60)
-        print(f'🔍 Scanning directory {dataDir} for .npy files 🔍'.center(60))
-        print('=' * 60 + '\n')
+        printSectionHeader(f'🔍 Scanning directory {dataDir} for .npy files 🔍')
 
         numpyFiles = []
 
@@ -69,18 +60,14 @@ class VowelDataset:
                 if file.endswith('.npy'):
                     numpyFiles.append(os.path.join(root, file))
 
-        print('\n' + '=' * 60)
-        print(f'✅  Found {len(numpyFiles)} .npy files  ✅'.center(60))
-        print('=' * 60 + '\n')
+        printSectionFooter(f'✅  Found {len(numpyFiles)} .npy files  ✅')
         return numpyFiles
 
 
 
 
     def loadVowelData(self):
-        print('\n' + '=' * 60)
-        print('📊 Loading vowel data from categorized syllable paths 📊'.center(60))
-        print('=' * 60 + '\n')
+        printSectionHeader('📊 Loading vowel data from categorized syllable paths 📊')
 
         data, labels = [], []
         for key, paths in self.categorizedSyllablePaths.items():
@@ -93,9 +80,7 @@ class VowelDataset:
         data = np.concatenate(data, axis=0)
         labels = np.array(labels)
 
-        print('\n' + '=' * 60)
-        print('✅  Vowel Data Loading Complete  ✅'.center(60))
-        print('=' * 60 + '\n')
+        printSectionFooter('✅  Vowel Data Loading Complete  ✅')
         return data, labels
 
 
