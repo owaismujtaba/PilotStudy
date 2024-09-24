@@ -109,11 +109,12 @@ class NeuralDatasetExtractor:
         printSectionHeader("🔧 Applying preprocessing steps to the raw EEG data 🔧")
         
         self.rawData.notch_filter([50, 100])
-        self.rawData.filter(l_freq=0.1, h_freq=None)
+        self.rawData.filter(l_freq=0.1, h_freq=120)
 
         ica = mne.preprocessing.ICA(max_iter='auto', random_state=42)
-        ica.fit(self.rawData)
-        self.rawData = ica.apply(self.rawData)
+        rawDataForICA = self.rawData.copy()
+        ica.fit(rawDataForICA)
+        ica.apply(self.rawData)
         self.rawData.set_eeg_reference(ref_channels=['FCz'])
 
         printSectionFooter("✅  Preprocessing Completed  ✅")
@@ -311,11 +312,15 @@ class NeuralDatasetExtractor:
                     eventTimings.append(event[0])
         wordsEvents = np.array([[timing, 0, code] for timing, code in zip(eventTimings, codes)])
         
-        self.wordEpochs = mne.Epochs(self.rawData, wordsEvents, 
-                                     event_id=self.wordsInExperiment, 
-                                     tmin=config.tmin, tmax=config.tmax,
-                                     baseline=(-0.5, 0), 
-                                     picks=self.channels)
+        self.wordEpochs = mne.Epochs(
+            self.rawData, wordsEvents, 
+            event_id=self.wordsInExperiment, 
+            tmin=config.tmin, tmax=config.tmax,
+            baseline=(-0.5, 0), 
+            picks=self.channels, 
+            preload=True,
+            verbose=False
+        )
 
         printSectionFooter("✅  Word EEG Data Extraction Complete  ✅")
 
@@ -352,15 +357,16 @@ class NeuralDatasetExtractor:
                     codes.append(code)
                     eventTimings.append(event[0])
 
-
-        syllableEvents = [[timing, 0, code] for timing, code in zip(eventTimings, codes)]
-        syllableEvents = np.array(syllableEvents)   
-
-
+        syllableEvents = np.array([[timing, 0, code] for timing, code in zip(eventTimings, codes)])
+        
         self.syllableEpochs = mne.Epochs(
             self.rawData, syllableEvents, 
-            event_id=self.syllablesInExperiment, 
-            tmin=config.tmin, tmax=config.tmax
+            event_id=self.wordsInExperiment, 
+            tmin=config.tmin, tmax=config.tmax,
+            baseline=(-0.5, 0), 
+            picks=self.channels, 
+            preload=True,
+            verbose=False
         )
 
         printSectionFooter("✅  Syllable EEG Data Extraction Complete  ✅")
