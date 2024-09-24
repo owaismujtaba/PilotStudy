@@ -267,4 +267,110 @@ class NeuralDatasetExtractor:
         if presentationMode is None:
             return True
         return presentationMode in eventName
-    
+
+
+
+class GroupDataExtractor:
+    """
+    A class for extracting and processing group data from neural datasets.
+
+    This class provides methods to extract and process data for different groups
+    based on specified categories. It utilizes the NeuralDatasetExtractor class
+    to handle the initial data extraction and preprocessing.
+
+    Attributes:
+        subjectId (str): The ID of the subject.
+        sessionId (str): The ID of the session.
+        runId (str): The ID of the run.
+        taskName (str): The name of the task.
+        bidsDir (str): The root directory of the BIDS dataset.
+        speechType (str): The type of speech (e.g., 'Overt', 'Covert').
+        languageElement (str): The language element type (e.g., 'Word', 'Syllable').
+        eventType (str): The type of event (e.g., 'Start', 'End').
+        trialPhase (str): The phase of the trial (e.g., 'Stimulus', 'ITI', 'ISI', 'Speech',
+        'Fixation', 'Response').
+        presentationMode (str): The mode of presentation (e.g., 'Audio', 'Text', 'Picture).
+        groupCategories (list): A list of group categories to be used for data extraction.
+        neuralData (NeuralDatasetExtractor): An instance of the NeuralDatasetExtractor class.
+        groupedData (dict): A dictionary to store the extracted data for each group.
+    """
+
+    def __init__(self, 
+        subjectId='01', sessionId='01', runId='01', 
+        taskName='PilotStudy', bidsDir=config.bidsDir, 
+        speechType=None, languageElement=None,
+        eventType=None, trialPhase=None, presentationMode=None,
+        groupCategories=['a', 'e', 'i', 'o', 'u']
+    ):
+        printSectionHeader("🚀 Initializing GroupDataExtractor 🚀")
+        
+        self.subjectId = subjectId
+        self.sessionId = sessionId
+        self.runId = runId
+        self.taskName = taskName
+        self.bidsDir = bidsDir
+        self.speechType = speechType
+        self.languageElement = languageElement
+        self.eventType = eventType
+        self.trialPhase = trialPhase
+        self.presentationMode = presentationMode 
+        self.groupCategories = groupCategories
+
+        self.neuralData = NeuralDatasetExtractor(
+            subjectId=self.subjectId,
+            sessionId=self.sessionId,
+            runId=self.runId,
+            taskName=self.taskName,
+            bidsDir=self.bidsDir,
+            speechType=self.speechType,
+            languageElement=self.languageElement,
+            eventType=self.eventType,
+            trialPhase=self.trialPhase,
+            presentationMode=self.presentationMode
+        )
+
+        self.groupedData = {}
+        printSectionFooter("✅ GroupDataExtractor Initialization Complete ✅")
+
+    def extractDataForGroups(self):
+        """
+        Extract data for each group based on the specified group categories.
+
+        This method extracts the data for each group by filtering the events
+        based on the group categories and stores the extracted data in a dictionary.
+
+        Returns:
+            None
+        """
+        printSectionHeader("🔍 Extracting Data for Groups 🔍")
+        groupsEventIndexs = {group: [] for group in self.groupCategories}
+        groupsEvenData = {group: [] for group in self.groupCategories}
+
+        for index in range(len(self.neuralData.morletFeatures.events)):
+            eventId = self.neuralData.morletFeatures.events[index][2]
+            eventName = self.neuralData.eventIdsReversed[eventId]
+            for key in groupsEventIndexs:
+                if eventName.endswith(key) or eventName.endswith(key.upper()):
+                    groupsEventIndexs[key].append(index)
+                    break
+                
+        for group in self.groupCategories:
+            groupsEvenData[group] = self.neuralData.morletFeatures[groupsEventIndexs[group]].get_data()
+
+        self.groupedData = groupsEvenData
+        print(f"📊 Extracted data for groups: {', '.join(self.groupCategories)}")
+        printSectionFooter("✅ Group Data Extraction Complete ✅")
+
+    def displayGroupInfo(self):
+        """
+        Display information about the group categories.
+
+        This method prints out the details of the group categories in a clear
+        and visually appealing format.
+
+        Returns:
+            None
+        """
+        printSectionHeader("ℹ️ Group Categories Information ℹ️")
+        print(f"📊 Group Categories: {', '.join(self.groupCategories)}")
+        printSectionFooter("✅ Group Information Display Complete ✅")
