@@ -75,7 +75,22 @@ class NeuralDatasetExtractor:
         printSectionFooter("🎉 Initialization Complete 🎉")
         self.getRealtedEvents()
         self.extractEvents()
-        
+    def displayInfo(self):
+        """
+        Display information about the subject, session, task, and run.
+
+        This method prints out the details of the subject, session, task, and run
+        in a clear and visually appealing format.
+
+        Returns:
+            None
+        """
+        printSectionHeader("ℹ️ Subject, Session, Task, and Run Information ℹ️")
+        print(f"🧑‍🔬 Subject ID: {self.subjectId}")
+        print(f"📅 Session ID: {self.sessionId}")
+        print(f"🏃‍♂️ Run ID: {self.runId}")
+        print(f"📝 Task Name: {self.taskName}")
+        printSectionFooter("✅ Information Display Complete ✅")   
     def preprocessData(self):
         """
         Apply preprocessing steps to the raw EEG data.
