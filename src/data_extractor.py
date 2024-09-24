@@ -374,3 +374,34 @@ class GroupDataExtractor:
         printSectionHeader("ℹ️ Group Categories Information ℹ️")
         print(f"📊 Group Categories: {', '.join(self.groupCategories)}")
         printSectionFooter("✅ Group Information Display Complete ✅")
+
+
+    def saveEpochedData(self, output_dir):
+        """
+        Save the epoched data to a file.
+
+        This method saves the epoched data (self.epochsData) to a file in the specified output directory.
+        The file will be in the .fif format, which is the standard format for MNE-Python objects.
+
+        Args:
+            output_dir (str): The directory where the epoched data should be saved.
+
+        Returns:
+            None
+        """
+        printSectionHeader("💾 Saving Epoched Data 💾")
+        
+        # Ensure the output directory exists
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        
+        # Create the filename
+        filename = f"sub-{self.subjectId}_ses-{self.sessionId}_task-{self.taskName}_run-{self.runId}_epo.fif"
+        filepath = Path(output_dir) / filename
+        
+        # Save the epochs
+        self.epochsData.save(filepath, overwrite=True)
+        
+        print(f"📁 Saved epoched data to: {filepath}")
+        printSectionFooter("✅ Epoched Data Saving Complete ✅")
+
+
