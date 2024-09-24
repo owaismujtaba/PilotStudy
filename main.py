@@ -83,7 +83,14 @@ if config.createBIDSFile:
     print('\n' + '=' * 60)
     print('📂  Starting BIDS File Creation  📂'.center(60))
     print('=' * 60)
-
+    print('\n' + '-' * 60)
+    print('📄  XDFData Details  📄'.center(60))
+    print('-' * 60)
+    print(f"File Path: {data.filePath}")
+    print(f"Subject ID: {data.subjectId}")
+    print(f"Session ID: {data.sessionId}")
+    print(f"Run ID: {data.runId}")
+    print('-' * 60 + '\n')
     data = XDFData(
         filePath=filepath,
         subjectId=subjectId,
