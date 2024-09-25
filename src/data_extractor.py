@@ -3,11 +3,22 @@ import mne
 from mne_bids import BIDSPath, read_raw_bids
 import numpy as np
 from src.utils import printSectionFooter, printSectionHeader
+from pathlib import Path
+import os
+from colorama import Fore, Style, init
+import pdb
+
+init(autoreset=True)
 
 class NeuralDatasetExtractor:
     """
     A class for processing neural data from EEG experiments.
+    A class for processing neural data from EEG experiments.
 
+    This class provides methods to load, process, and extract EEG data
+    from BIDS-formatted datasets. It includes functionality for initializing
+    the dataset, extracting event information, and creating epochs for words
+    and syllables based on various parameters such as speech type, language element,
     This class provides methods to load, process, and extract EEG data
     from BIDS-formatted datasets. It includes functionality for initializing
     the dataset, extracting event information, and creating epochs for words
@@ -35,6 +46,9 @@ class NeuralDatasetExtractor:
         intrestedEvents (numpy.ndarray): The filtered events based on specified parameters.
         epochsData (mne.Epochs): Epochs object for the filtered events.
         morletFeatures (mne.time_frequency.EpochsTFR): Time-frequency representations of the epochs.
+        intrestedEvents (numpy.ndarray): The filtered events based on specified parameters.
+        epochsData (mne.Epochs): Epochs object for the filtered events.
+        morletFeatures (mne.time_frequency.EpochsTFR): Time-frequency representations of the epochs.
     """
 
     def __init__(self, 
@@ -44,7 +58,7 @@ class NeuralDatasetExtractor:
             eventType=None, trialPhase=None, presentationMode=None
         ):
         
-        printSectionHeader("🚀 Initializing NeuralDatasetExtractor 🚀")
+        printSectionHeader(f"{Fore.CYAN}🚀 Initializing NeuralDatasetExtractor 🚀{Style.RESET_ALL}")
         
         self.subjectId = subjectId
         self.sessionId = sessionId
@@ -57,24 +71,28 @@ class NeuralDatasetExtractor:
         self.trialPhase = trialPhase
         self.presentationMode = presentationMode
         self.frequencyRange = np.logspace(*np.log10([1, 120]), num=10)
-
         self.bidsFilepath = BIDSPath(
             subject=self.subjectId, session=self.sessionId, run=self.runId,
             task=self.taskName, suffix='eeg', root=self.bidsDir
         )
 
-        printSectionHeader("📊 Loading Data 📊")
+        self.displayInfo()
+
+        printSectionHeader(f"{Fore.YELLOW}📊 Loading Raw Data 📊{Style.RESET_ALL}")
         self.rawData = read_raw_bids(self.bidsFilepath)
         self.channels = self.rawData.ch_names
         self.rawData.load_data()
-        printSectionFooter("✅ Data Loading Complete ✅")
-    
+        printSectionFooter(f"{Fore.GREEN}✅ Data Loading Complete ✅{Style.RESET_ALL}")
+        self.preprocessData()
         self.events, self.eventIds = mne.events_from_annotations(self.rawData, verbose=False)
         self.eventIdsReversed = {value: key for key, value in self.eventIds.items()}
+        self.eventIdsReversed = {value: key for key, value in self.eventIds.items()}
         
-        printSectionFooter("🎉 Initialization Complete 🎉")
+        printSectionFooter(f"{Fore.GREEN}🎉 NeuralDatasetExtractor Initialization Complete 🎉{Style.RESET_ALL}")
         self.getRealtedEvents()
         self.extractEvents()
+        self.saveEpochedData()
+
     def displayInfo(self):
         """
         Display information about the subject, session, task, and run.
@@ -86,11 +104,11 @@ class NeuralDatasetExtractor:
             None
         """
         printSectionHeader("ℹ️ Subject, Session, Task, and Run Information ℹ️")
-        print(f"🧑‍🔬 Subject ID: {self.subjectId}")
-        print(f"📅 Session ID: {self.sessionId}")
-        print(f"🏃‍♂️ Run ID: {self.runId}")
-        print(f"📝 Task Name: {self.taskName}")
-        printSectionFooter("✅ Information Display Complete ✅")   
+        print(f"🧑‍🔬 Subject ID: {self.subjectId}".center(60))
+        print(f"📅 Session ID: {self.sessionId}".center(60))
+        print(f"🏃‍♂️ Run ID: {self.runId}".center(60))
+        print(f"📝 Task Name: {self.taskName}".center(60))
+    
     def preprocessData(self):
         """
         Apply preprocessing steps to the raw EEG data.
@@ -99,28 +117,31 @@ class NeuralDatasetExtractor:
         1. Notch filter at 50 Hz and 100 Hz to remove power line noise.
         2. Bandpass filter between 0.1 Hz and 120 Hz.
         3. Independent Component Analysis (ICA) to capture 99% of the variance.
+        1. Notch filter at 50 Hz and 100 Hz to remove power line noise.
+        2. Bandpass filter between 0.1 Hz and 120 Hz.
+        3. Independent Component Analysis (ICA) to capture 99% of the variance.
 
         Returns:
             None
         """
-        printSectionHeader("🧹 Applying Preprocessing Steps 🧹")
+        printSectionHeader(f"{Fore.MAGENTA}🧹 Applying Preprocessing Steps 🧹{Style.RESET_ALL}")
         
-        print("1️⃣ Applying notch filter...")
+        print(f"{Fore.YELLOW}1️⃣ Applying notch filter...{Style.RESET_ALL}")
         self.rawData.notch_filter([50, 100])
         
-        print("2️⃣ Applying bandpass filter...")
-        self.rawData.filter(l_freq=0.1, h_freq=120)
+        print(f"{Fore.YELLOW}2️⃣ Applying bandpass filter...{Style.RESET_ALL}")
+        self.rawData.filter(l_freq=0.1, h_freq=120, n_jobs=config.nJobs)
 
-        print("3️⃣ Performing ICA...")
+        print(f"{Fore.YELLOW}3️⃣ Performing ICA...{Style.RESET_ALL}")
         ica = mne.preprocessing.ICA(max_iter='auto', random_state=42)
         rawDataForICA = self.rawData.copy()
         ica.fit(rawDataForICA)
         ica.apply(self.rawData)
         
-        print("4️⃣ Setting EEG reference...")
+        print(f"{Fore.YELLOW}4️⃣ Setting EEG reference to FCz{Style.RESET_ALL}")
         self.rawData.set_eeg_reference(ref_channels=['FCz'])
 
-        printSectionFooter("✨ Preprocessing Completed ✨")
+        printSectionFooter(f"{Fore.GREEN}✨ Preprocessing Completed ✨{Style.RESET_ALL}")
 
     def getRealtedEvents(self):
         """
@@ -132,7 +153,7 @@ class NeuralDatasetExtractor:
         Returns:
             None
         """
-        printSectionHeader("🔍 Extracting Related Events 🔍")
+        printSectionHeader(f"🔍 Extracting Related Events 🔍")
         intrestedEvents = []
         for index in range(len(self.events)):
             eventCode = self.events[index][2]
@@ -145,8 +166,8 @@ class NeuralDatasetExtractor:
             ):
                 intrestedEvents.append(self.events[index])
         self.intrestedEvents = np.array(intrestedEvents)
-        print(f"📊 Found {len(self.intrestedEvents)} events of interest")
-        printSectionFooter("✅ Event Extraction Complete ✅")
+        print(f"{Fore.MAGENTA}📊 Found {len(self.intrestedEvents)} events of interest{Style.RESET_ALL}".center(60))
+        printSectionFooter(f"✅ Event Extraction Complete ✅")
     
     def extractEvents(self):
         """
@@ -168,30 +189,18 @@ class NeuralDatasetExtractor:
             preload=True,
             verbose=False
         )
-        print(f"📊 Created {len(self.epochsData)} epochs")
+
+        eventIds = self.epochsData.event_id
+        
+        newEventIds = {}
+        
+        for key, item in eventIds.items():
+            newEventIds[key] = self.eventIdsReversed[int(key)]
+        self.epochsData.event_id = newEventIds
+
+        print(f"{Fore.GREEN}📊 Created {len(self.epochsData)} epochs{Style.RESET_ALL}".center(60))
         printSectionFooter("✅ Epoch Creation Complete ✅")
 
-    def computeMorletFeatures(self):
-        """
-        Compute time-frequency representations using Morlet wavelets.
-
-        This method computes the time-frequency representations of the epochs
-        using Morlet wavelets.
-
-        Returns:
-            None
-        """
-        printSectionHeader("🌊 Computing Morlet Features 🌊")
-        self.morletFeatures = self.epochsData.compute_tfr(
-            method='morlet',
-            freqs=self.frequencyRange,
-            n_cycles=self.frequencyRange/8,
-            use_fft=True,
-            return_itc=False,
-            average=False
-        )
-        print(f"📊 Computed Morlet features for {len(self.morletFeatures)} epochs")
-        printSectionFooter("✅ Morlet Feature Computation Complete ✅")
     
     def _checkSpeechType(self, eventName, speechType):
         """
@@ -267,8 +276,35 @@ class NeuralDatasetExtractor:
         if presentationMode is None:
             return True
         return presentationMode in eventName
+    
+    def saveEpochedData(self):
+        """
+        Save the epoched data to a file.
 
+        This method saves the epoched data (self.epochsData) to a file in the specified output directory.
+        The file will be in the .fif format, which is the standard format for MNE-Python objects.
 
+        Args:
+            output_dir (str): The directory where the epoched data should be saved.
+
+        Returns:
+            None
+        """
+        
+        printSectionHeader("💾 Saving Epoched Data 💾")
+
+        dataDir = config.dataDir
+        folder = f'{self.speechType}{self.languageElement}{self.eventType}{self.trialPhase}{self.presentationMode}'
+        filename = f"sub-{self.subjectId}_ses-{self.sessionId}_task-{self.taskName}_run-{self.runId}_epo.fif"
+        destinationDir = Path(dataDir, f'sub-{self.subjectId}', f'ses-{self.sessionId}', folder)
+
+        Path(destinationDir).mkdir(parents=True, exist_ok=True)
+        
+        filepath = Path(destinationDir) / filename
+        self.epochsData.save(filepath, overwrite=True)
+        
+        print(f"📁 Saved epoched data to: {filepath}")
+        printSectionFooter("✅ Epoched Data Saving Complete ✅")
 
 class GroupDataExtractor:
     """
@@ -290,6 +326,9 @@ class GroupDataExtractor:
         trialPhase (str): The phase of the trial (e.g., 'Stimulus', 'ITI', 'ISI', 'Speech',
         'Fixation', 'Response').
         presentationMode (str): The mode of presentation (e.g., 'Audio', 'Text', 'Picture).
+        groupCategories (list): A list of group categories to be used for data extraction.
+        neuralData (NeuralDatasetExtractor): An instance of the NeuralDatasetExtractor class.
+        groupedData (dict): A dictionary to store the extracted data for each group.
         groupCategories (list): A list of group categories to be used for data extraction.
         neuralData (NeuralDatasetExtractor): An instance of the NeuralDatasetExtractor class.
         groupedData (dict): A dictionary to store the extracted data for each group.
@@ -315,23 +354,41 @@ class GroupDataExtractor:
         self.trialPhase = trialPhase
         self.presentationMode = presentationMode 
         self.groupCategories = groupCategories
+        
+                
+        dataDir = config.dataDir
+        folder = f'{self.speechType}{self.languageElement}{self.eventType}{self.trialPhase}{self.presentationMode}'
+        filename = f"sub-{self.subjectId}_ses-{self.sessionId}_task-{self.taskName}_run-{self.runId}_epo.fif"
+        destinationDir = Path(dataDir, f'sub-{self.subjectId}', f'ses-{self.sessionId}', folder)
+        filepath = Path(destinationDir, filename)
 
-        self.neuralData = NeuralDatasetExtractor(
-            subjectId=self.subjectId,
-            sessionId=self.sessionId,
-            runId=self.runId,
-            taskName=self.taskName,
-            bidsDir=self.bidsDir,
-            speechType=self.speechType,
-            languageElement=self.languageElement,
-            eventType=self.eventType,
-            trialPhase=self.trialPhase,
-            presentationMode=self.presentationMode
-        )
-
-        self.groupedData = {}
+        if not os.path.exists(filepath):
+            self.neuralData = NeuralDatasetExtractor(
+                subjectId=self.subjectId,
+                sessionId=self.sessionId,
+                runId=self.runId,
+                taskName=self.taskName,
+                bidsDir=self.bidsDir,
+                speechType=self.speechType,
+                languageElement=self.languageElement,
+                eventType=self.eventType,
+                trialPhase=self.trialPhase,
+                presentationMode=self.presentationMode
+            )
+        else:
+            printSectionHeader(f"Loading epochs data from ")
+            printSectionHeader(f"File: {filepath}")
+            self.loadEpochsDataFromFile(filepath)
+        
         printSectionFooter("✅ GroupDataExtractor Initialization Complete ✅")
-
+        
+        self.displayGroupInfo()
+        self.computeMorletFeatures()
+        self.extractDataForGroups()
+        #self.makeTrainDataset()
+    def loadEpochsDataFromFile(self, filepath):
+        self.neuralData = mne.read_epochs(filepath, preload=True)
+       
     def extractDataForGroups(self):
         """
         Extract data for each group based on the specified group categories.
@@ -358,7 +415,7 @@ class GroupDataExtractor:
             groupsEvenData[group] = self.neuralData.morletFeatures[groupsEventIndexs[group]].get_data()
 
         self.groupedData = groupsEvenData
-        print(f"📊 Extracted data for groups: {', '.join(self.groupCategories)}")
+        print(f"{Fore.MAGENTA}📊 Extracted data for groups: {', '.join(self.groupCategories)}{Style.RESET_ALL}")
         printSectionFooter("✅ Group Data Extraction Complete ✅")
 
     def displayGroupInfo(self):
@@ -372,36 +429,44 @@ class GroupDataExtractor:
             None
         """
         printSectionHeader("ℹ️ Group Categories Information ℹ️")
-        print(f"📊 Group Categories: {', '.join(self.groupCategories)}")
+        print(f"{Fore.MAGENTA}📊 Group Categories: {', '.join(self.groupCategories)}{Style.RESET_ALL}")
         printSectionFooter("✅ Group Information Display Complete ✅")
-
-
-    def saveEpochedData(self, output_dir):
+    
+    def computeMorletFeatures(self):
         """
-        Save the epoched data to a file.
+        Compute time-frequency representations using Morlet wavelets.
 
-        This method saves the epoched data (self.epochsData) to a file in the specified output directory.
-        The file will be in the .fif format, which is the standard format for MNE-Python objects.
-
-        Args:
-            output_dir (str): The directory where the epoched data should be saved.
+        This method computes the time-frequency representations of the epochs
+        using Morlet wavelets.
 
         Returns:
             None
         """
-        printSectionHeader("💾 Saving Epoched Data 💾")
-        
-        # Ensure the output directory exists
-        Path(output_dir).mkdir(parents=True, exist_ok=True)
-        
-        # Create the filename
-        filename = f"sub-{self.subjectId}_ses-{self.sessionId}_task-{self.taskName}_run-{self.runId}_epo.fif"
-        filepath = Path(output_dir) / filename
-        
-        # Save the epochs
-        self.epochsData.save(filepath, overwrite=True)
-        
-        print(f"📁 Saved epoched data to: {filepath}")
-        printSectionFooter("✅ Epoched Data Saving Complete ✅")
+        printSectionHeader("🌊 Computing Morlet Features 🌊")
+        pdb.set_trace()
+        self.morletFeatures = self.epochsData.compute_tfr(
+            method='morlet',
+            freqs=self.frequencyRange,
+            n_cycles=self.frequencyRange/8,
+            use_fft=True,
+            return_itc=False,
+            average=False
+        )
+        print(f"📊 Computed Morlet features for {len(self.morletFeatures)} epochs")
+        printSectionFooter("✅ Morlet Feature Computation Complete ✅")
+    
+    def makeTrainDataset(self):
+        data = None
+        labels = None
+        for group in self.groupCategories:
+            if data == None:
+                data = self.groupedData[group]
+                labels = [group]*data.shape[0]
+            else:
+                data = np.concatenate((data, self.groupedData[group]), axis=0)
+                labels += [group]*self.groupedData[group].shape[0]
 
 
+        self.xTrain = data
+        self.yTrain = labels
+        
