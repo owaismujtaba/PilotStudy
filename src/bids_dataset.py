@@ -10,7 +10,11 @@ import time
 import numpy as np
 import src.config as config
 import pdb
-from src.utils import printSectionFooter, printSectionHeader
+from src.utils import printSectionHeader, printSectionFooter
+from colorama import Fore, Style, init
+
+# Initialize colorama for cross-platform color support
+init()
 
 class XDFData:
     """
@@ -76,7 +80,7 @@ class XDFData:
         2. Identifies EEG and Audio streams
         3. Loads EEG and Audio data using read_raw_xdf
         """
-        printSectionHeader('🔄  Loading XDF Data  🔄'.center(60))
+        printSectionHeader(f"{Fore.CYAN}📂 Loading XDF Data")
         
         startTime = time.time()
         
@@ -84,20 +88,20 @@ class XDFData:
         eegStreamId = match_streaminfos(streams, [{'type':'EEG'}])[0]
         audioStreamId = match_streaminfos(streams, [{'type':'Audio'}])[0]
         
-        print('📊 Loading EEG stream...'.ljust(30), end='')
+        print(' Loading EEG stream...'.ljust(30), end='')
         eegStart = time.time()
         self.eegData = read_raw_xdf(self.filePath, stream_ids=[eegStreamId])
         eegTime = time.time() - eegStart
         print(f'✅ Done in {eegTime:.2f} seconds')
         
-        print('🎵 Loading Audio stream...'.ljust(30), end='')
+        print(' Loading Audio stream...'.ljust(30), end='')
         audioStart = time.time()
         self.audioData = read_raw_xdf(self.filePath, stream_ids=[audioStreamId])
         audioTime = time.time() - audioStart
         print(f'✅ Done in {audioTime:.2f} seconds')
         
         totalTime = time.time() - startTime
-        printSectionFooter(f'✅  XDF Data Loading Complete in {totalTime:.2f} seconds  ✅'.center(60))
+        printSectionFooter(f"{Fore.GREEN}✅ XDF Data Loading Complete in {totalTime:.2f} seconds")
 
     def setupData(self):
         """
@@ -109,7 +113,7 @@ class XDFData:
         2. Resamples EEG data to the specified sampling frequency
         3. Resamples Audio data to the specified sampling frequency
         """
-        printSectionHeader('🛠️  Setting up data for EEG and Audio  🛠️'.center(60))
+        printSectionHeader(f"{Fore.YELLOW}🔧 Setting up data for EEG and Audio")
         
         startTime = time.time()
         
@@ -124,14 +128,9 @@ class XDFData:
         eegResampleTime = time.time() - eegResampleStart
         print(f'✅ Done in {eegResampleTime:.2f} seconds')
         
-        print(f'Resampling Audio data...{self.audioSamplingFrequency}'.ljust(30), end='')
-        audioResampleStart = time.time()
-        self.audioData.resample(self.audioSamplingFrequency)
-        audioResampleTime = time.time() - audioResampleStart
-        print(f'✅ Done in {audioResampleTime:.2f} seconds')
-        
+                
         totalTime = time.time() - startTime
-        printSectionFooter(f'✅  Setup data completed in {totalTime:.2f} seconds  ✅'.center(60))
+        printSectionFooter(f"{Fore.GREEN}✅ Setup data completed in {totalTime:.2f} seconds")
 
     def printInfo(self):
         """
@@ -146,17 +145,17 @@ class XDFData:
         5. Destination Directory
         6. File Name
         """
-        printSectionFooter('📊  Data Information  📊')
-        print(f'🧠 EEG Sampling Frequency:  {self.eegSamplingFrequency} Hz')
-        print(f'🎵 Audio Sampling Frequency: {self.audioSamplingFrequency} Hz')
-        print(f'👤 Subject ID:               {self.subjectId}')
-        print(f'🔢 Session ID:               {self.sessionId}')
-        print(f'🏃 Run ID:                   {self.runId}')
-        print(f'📝 Task Name:                {self.taskName}')
-        print(f'🗂️  BIDS Path:                {self.bidsPath}')
-        print(f'📁 Destination Directory:    {self.destinationDir}')
-        print(f'📄 File Name:                {self.fileName}')
-        print('*' * 60 + '\n')
+        printSectionHeader(f"{Fore.MAGENTA}ℹ️  Data Information")
+        print(f'易 EEG Sampling Frequency:  {self.eegSamplingFrequency} Hz')
+        print(f' Audio Sampling Frequency: {self.audioSamplingFrequency} Hz')
+        print(f' Subject ID:               {self.subjectId}')
+        print(f' Session ID:               {self.sessionId}')
+        print(f' Run ID:                   {self.runId}')
+        print(f' Task Name:                {self.taskName}')
+        print(f'️  BIDS Path:                {self.bidsPath}')
+        print(f' Destination Directory:    {self.destinationDir}')
+        print(f' File Name:                {self.fileName}')
+        print(f"{Fore.MAGENTA}{'*' * 60}{Style.RESET_ALL}")
 
     def createAudio(self):
         """
@@ -170,7 +169,7 @@ class XDFData:
         4. Writes the audio data to a WAV file
         
         """
-        printSectionHeader('🎵  Creating Audio File  🎵'.center(60))
+        printSectionHeader(f"{Fore.BLUE}🎵 Creating Audio File")
         
         startTime = time.time()
         
@@ -199,7 +198,7 @@ class XDFData:
         print(f'✅ Done in {writeTime:.2f} seconds')
         
         totalTime = time.time() - startTime
-        printSectionFooter(f'✅  Audio File Created Successfully in {totalTime:.2f} seconds  ✅'.center(60))
+        printSectionFooter(f"{Fore.GREEN}✅ Audio File Created Successfully in {totalTime:.2f} seconds")
         
 
     def ensureDirectoryExists(self, path):
@@ -232,7 +231,7 @@ class XDFData:
         Returns:
         - Path: The path of the created events file
         """
-        printSectionHeader('📝  Creating Events File for Audio  📝'.center(60))
+        printSectionHeader(f"{Fore.YELLOW}📝 Creating Events File for Audio")
         
         startTime = time.time()
         
@@ -256,7 +255,7 @@ class XDFData:
         print(f'✅ Done in {writeTime:.2f} seconds')
         
         totalTime = time.time() - startTime
-        printSectionFooter(f'✅  Events File Created Successfully in {totalTime:.2f} seconds  ✅'.center(60))
+        printSectionFooter(f"{Fore.GREEN}✅ Events File Created Successfully in {totalTime:.2f} seconds")
         
         return fileNameWithPath
 
@@ -276,7 +275,7 @@ class XDFData:
         The resulting EDF file is BIDS-compatible and contains the EEG data
         along with necessary metadata.
         """
-        printSectionHeader('🧠  Creating BIDS EDF File  🧠'.center(60))
+        printSectionHeader(f"{Fore.CYAN}🧠 Creating BIDS EDF File")
         
         startTime = time.time()
         
@@ -287,7 +286,7 @@ class XDFData:
         print(f'✅ Done in {writeTime:.2f} seconds')
         
         totalTime = time.time() - startTime
-        printSectionFooter(f'✅  BIDS EDF File Created Successfully in {totalTime:.2f} seconds  ✅'.center(60))
+        printSectionFooter(f"{Fore.GREEN}✅ BIDS EDF File Created Successfully in {totalTime:.2f} seconds")
 
 
 
