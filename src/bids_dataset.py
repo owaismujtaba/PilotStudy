@@ -89,13 +89,13 @@ class XDFData:
         eegStreamId = match_streaminfos(streams, [{'type':'EEG'}])[0]
         audioStreamId = match_streaminfos(streams, [{'type':'Audio'}])[0]
         
-        print(' Loading EEG stream...'.ljust(30), end='')
+        print(' Loading EEG stream...'.ljust(confg.terminalWidth), end='')
         eegStart = time.time()
         self.eegData = read_raw_xdf(self.filePath, stream_ids=[eegStreamId])
         eegTime = time.time() - eegStart
         print(f'✅ Done in {eegTime:.2f} seconds')
         
-        print(' Loading Audio stream...'.ljust(30), end='')
+        print(' Loading Audio stream...'.ljust(confg.terminalWidth), end='')
         audioStart = time.time()
         self.audioData = read_raw_xdf(self.filePath, stream_ids=[audioStreamId])
         audioTime = time.time() - audioStart
@@ -129,8 +129,7 @@ class XDFData:
         eegResampleTime = time.time() - eegResampleStart
         print(f'✅ Done in {eegResampleTime:.2f} seconds')
         
-        print(f"{Fore.CYAN}📊 EEG data shape: {self.eegData.shape}")
-        print(f"{Fore.CYAN}🎵 Audio data shape: {self.audioData.shape}")
+       
         
         totalTime = time.time() - startTime
         printSectionFooter(f"{Fore.GREEN}✅ Setup data completed in {totalTime:.2f} seconds")
@@ -149,17 +148,17 @@ class XDFData:
         6. File Name
         """
         printSectionHeader(f"{Fore.MAGENTA}ℹ️  Data Information")
-        print(f"{Fore.CYAN}📊 EEG Data Shape: {self.eegData.shape}")
-        print(f"{Fore.CYAN}🎵 Audio Data Shape: {self.audioData.shape}")
+        print(f"{Fore.CYAN}📊 EEG Data Shape: {self.eegData.get_data().shape}")
+        print(f"{Fore.CYAN}🎵 Audio Data Shape: {self.audioData.get_data().shape}")
         print(f"{Fore.YELLOW}⏱️  EEG Sample Rate: {self.eegSamplingFrequency} Hz")
         print(f"{Fore.YELLOW}⏱️  Audio Sample Rate: {self.audioSamplingFrequency} Hz")
-        print(f'👤 Subject ID:               {self.subjectId}')
-        print(f'🔢 Session ID:               {self.sessionId}')
-        print(f'🏃 Run ID:                   {self.runId}')
-        print(f'📝 Task Name:                {self.taskName}')
-        print(f'🗂️  BIDS Path:                {self.bidsPath}')
-        print(f'📁 Destination Directory:    {self.destinationDir}')
-        print(f'📄 File Name:                {self.fileName}')
+        print(f'👤 Subject ID:               {self.subjectId}'.center(config.terminalWidth))
+        print(f'🔢 Session ID:               {self.sessionId}'.center(config.terminalWidth))
+        print(f'🏃 Run ID:                   {self.runId}'.center(config.terminalWidth))
+        print(f'📝 Task Name:                {self.taskName}'.center(config.terminalWidth))
+        print(f'🗂️  BIDS Path:               {self.bidsPath}'.center(config.terminalWidth))
+        print(f'📁 Destination Directory:    {self.destinationDir}'.center(config.terminalWidth))
+        print(f'📄 File Name:                {self.fileName}'.center(config.terminalWidth))
         print(f"{Fore.MAGENTA}{'*' * 60}{Style.RESET_ALL}")
 
     def createAudio(self):
@@ -197,7 +196,7 @@ class XDFData:
         
         destinationPath = destinationDir / f'{self.fileName}_audio.wav'
         print(f"{Fore.CYAN}💾 Saving audio file to: {destinationPath}")
-        print('Writing audio file...'.ljust(30), end='')
+        print('Writing audio file...'.ljust(config.terminalWidth), end='')
         writeStart = time.time()
         write(str(destinationPath), self.audioSamplingFrequency, audioData)
         writeTime = time.time() - writeStart
@@ -246,7 +245,7 @@ class XDFData:
         self.ensureDirectoryExists(destinationDir)
         fileNameWithPath = destinationDir / fileName
         
-        print('Writing events to file...'.ljust(30), end='')
+        print('Writing events to file...'.ljust(config.terminalWidth), end='')
         writeStart = time.time()
         annotations = self.audioData.annotations
         with open(fileNameWithPath, "w", newline="") as tsvFile:
@@ -286,7 +285,7 @@ class XDFData:
         
         startTime = time.time()
         
-        print('Writing EEG data to EDF...'.ljust(30), end='')
+        print('Writing EEG data to EDF...'.ljust(config.terminalWidth), end='')
         writeStart = time.time()
         write_raw_bids(self.eegData, bids_path=self.bidsPath, allow_preload=True, format='EDF', overwrite=True)
         writeTime = time.time() - writeStart
