@@ -10,6 +10,7 @@ import time
 import numpy as np
 import src.config as config
 import pdb
+from src.utils import printSectionFooter, printSectionHeader
 
 class XDFData:
     """
@@ -75,9 +76,7 @@ class XDFData:
         2. Identifies EEG and Audio streams
         3. Loads EEG and Audio data using read_raw_xdf
         """
-        print('\n' + '=' * 60)
-        print('🔄  Loading XDF Data  🔄'.center(60))
-        print('=' * 60)
+        printSectionHeader('🔄  Loading XDF Data  🔄'.center(60))
         
         startTime = time.time()
         
@@ -98,9 +97,7 @@ class XDFData:
         print(f'✅ Done in {audioTime:.2f} seconds')
         
         totalTime = time.time() - startTime
-        print('=' * 60)
-        print(f'✅  XDF Data Loading Complete in {totalTime:.2f} seconds  ✅'.center(60))
-        print('=' * 60 + '\n')
+        printSectionFooter(f'✅  XDF Data Loading Complete in {totalTime:.2f} seconds  ✅'.center(60))
 
     def setupData(self):
         """
@@ -112,9 +109,7 @@ class XDFData:
         2. Resamples EEG data to the specified sampling frequency
         3. Resamples Audio data to the specified sampling frequency
         """
-        print('\n' + '-' * 60)
-        print('🛠️  Setting up data for EEG and Audio  🛠️'.center(60))
-        print('-' * 60)
+        printSectionHeader('🛠️  Setting up data for EEG and Audio  🛠️'.center(60))
         
         startTime = time.time()
         
@@ -136,9 +131,7 @@ class XDFData:
         print(f'✅ Done in {audioResampleTime:.2f} seconds')
         
         totalTime = time.time() - startTime
-        print('-' * 60)
-        print(f'✅  Setup data completed in {totalTime:.2f} seconds  ✅'.center(60))
-        print('-' * 60 + '\n')
+        printSectionFooter(f'✅  Setup data completed in {totalTime:.2f} seconds  ✅'.center(60))
 
     def printInfo(self):
         """
@@ -153,9 +146,7 @@ class XDFData:
         5. Destination Directory
         6. File Name
         """
-        print('\n' + '*' * 60)
-        print('📊  Data Information  📊'.center(60))
-        print('*' * 60)
+        printSectionFooter('📊  Data Information  📊')
         print(f'🧠 EEG Sampling Frequency:  {self.eegSamplingFrequency} Hz')
         print(f'🎵 Audio Sampling Frequency: {self.audioSamplingFrequency} Hz')
         print(f'👤 Subject ID:               {self.subjectId}')
@@ -179,9 +170,7 @@ class XDFData:
         4. Writes the audio data to a WAV file
         
         """
-        print('\n' + '=' * 60)
-        print('🎵  Creating Audio File  🎵'.center(60))
-        print('=' * 60)
+        printSectionHeader('🎵  Creating Audio File  🎵'.center(60))
         
         startTime = time.time()
         
@@ -210,9 +199,7 @@ class XDFData:
         print(f'✅ Done in {writeTime:.2f} seconds')
         
         totalTime = time.time() - startTime
-        print('=' * 60)
-        print(f'✅  Audio File Created Successfully in {totalTime:.2f} seconds  ✅'.center(60))
-        print('=' * 60 + '\n')
+        printSectionFooter(f'✅  Audio File Created Successfully in {totalTime:.2f} seconds  ✅'.center(60))
         
 
     def ensureDirectoryExists(self, path):
@@ -245,9 +232,7 @@ class XDFData:
         Returns:
         - Path: The path of the created events file
         """
-        print('\n' + '=' * 60)
-        print('📝  Creating Events File for Audio  📝'.center(60))
-        print('=' * 60)
+        printSectionHeader('📝  Creating Events File for Audio  📝'.center(60))
         
         startTime = time.time()
         
@@ -271,9 +256,7 @@ class XDFData:
         print(f'✅ Done in {writeTime:.2f} seconds')
         
         totalTime = time.time() - startTime
-        print('=' * 60)
-        print(f'✅  Events File Created Successfully in {totalTime:.2f} seconds  ✅'.center(60))
-        print('=' * 60 + '\n')
+        printSectionFooter(f'✅  Events File Created Successfully in {totalTime:.2f} seconds  ✅'.center(60))
         
         return fileNameWithPath
 
@@ -293,9 +276,7 @@ class XDFData:
         The resulting EDF file is BIDS-compatible and contains the EEG data
         along with necessary metadata.
         """
-        print('\n' + '=' * 60)
-        print('🧠  Creating BIDS EDF File  🧠'.center(60))
-        print('=' * 60)
+        printSectionHeader('🧠  Creating BIDS EDF File  🧠'.center(60))
         
         startTime = time.time()
         
@@ -306,7 +287,9 @@ class XDFData:
         print(f'✅ Done in {writeTime:.2f} seconds')
         
         totalTime = time.time() - startTime
-        print('=' * 60)
-        print(f'✅  BIDS EDF File Created Successfully in {totalTime:.2f} seconds  ✅'.center(60))
-        print('=' * 60 + '\n')
+        printSectionFooter(f'✅  BIDS EDF File Created Successfully in {totalTime:.2f} seconds  ✅'.center(60))
+
+
+
+
 
