@@ -15,7 +15,7 @@ rawDataDir = Path(currDir, 'RawData', 'EEG')
 bidsDir = Path(currDir, 'BIDS')
 dataDir = Path(currDir, 'Data')
 resultsDir = Path(currDir, 'Results')
-
+imagesDir = Path(currDir, 'Images')
 device='GPU'
 nJobs = 15
 tmax = 1.5

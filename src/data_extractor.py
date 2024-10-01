@@ -329,7 +329,7 @@ class GroupDataExtractor:
         eventType=None, trialPhase=None, presentationMode=None,
         groupCategories=['a', 'e', 'i', 'o', 'u']
     ):
-        printSectionHeader(" Initializing GroupDataExtractor ")
+        printSectionHeader(" Initializing GroupDataExtractor ")
         
         self.subjectId = subjectId
         self.sessionId = sessionId
@@ -342,109 +342,46 @@ class GroupDataExtractor:
         self.trialPhase = trialPhase
         self.presentationMode = presentationMode 
         self.groupCategories = groupCategories
-        self.groupFolder = None
-        self.frequencyRange =  np.logspace(*np.log10([1, 120]), num=10)
-                
+        self.frequencyRange = np.logspace(*np.log10([1, 120]), num=10)
+        
+        self.loadEpochsData()
+        self.displayGroupInfo()
+
+    def loadEpochsData(self):
         dataDir = config.dataDir
         folder = f'{self.speechType}{self.languageElement}{self.eventType}{self.trialPhase}{self.presentationMode}'
         filename = f"sub-{self.subjectId}_ses-{self.sessionId}_task-{self.taskName}_run-{self.runId}_epo.fif"
         destinationDir = Path(dataDir, f'sub-{self.subjectId}', f'ses-{self.sessionId}', folder)
         filepath = Path(destinationDir, filename)
         self.groupFolder = folder
+
         if not os.path.exists(filepath):
             self.neuralData = NeuralDatasetExtractor(
-                subjectId=self.subjectId,
-                sessionId=self.sessionId,
-                runId=self.runId,
-                taskName=self.taskName,
-                bidsDir=self.bidsDir,
-                speechType=self.speechType,
-                languageElement=self.languageElement,
-                eventType=self.eventType,
-                trialPhase=self.trialPhase,
+                subjectId=self.subjectId, sessionId=self.sessionId, runId=self.runId,
+                taskName=self.taskName, bidsDir=self.bidsDir,
+                speechType=self.speechType, languageElement=self.languageElement,
+                eventType=self.eventType, trialPhase=self.trialPhase,
                 presentationMode=self.presentationMode
             )
             self.epochsData = self.neuralData.epochsData
         else:
-            printSectionHeader(f"Loading epochs data from ")
-            printSectionHeader(f"File: {filepath}")
-            self.loadEpochsDataFromFile(filepath)
+            printSectionHeader(f"Loading epochs data from {filepath}")
+            self.epochsData = mne.read_epochs(filepath, preload=True)
 
         self.eventIds = self.epochsData.event_id
         self.eventIdsReversed = {value: key for key, value in self.eventIds.items()}
 
-       
-        printSectionFooter("✅ GroupDataExtractor Initialization Complete ✅")
-        
-        self.displayGroupInfo()
-        #self.computeMorletFeatures()
-        #self.extractDataForGroups()
-        #self.makeTrainDataset()
-    
-    def loadEpochsDataFromFile(self, filepath):
-        self.epochsData = mne.read_epochs(filepath, preload=True)
-        
-    def extractDataForGroups(self):
-        """
-        Extract data for each group based on the specified group categories.
-
-        This method extracts the data for each group by filtering the events
-        based on the group categories and stores the extracted data in a dictionary.
-
-        Returns:
-            None
-        """
-        printSectionHeader(" Extracting Morlet and Raw Features  for Groups ")
-        groupsIndexsDict = {group: [] for group in self.groupCategories}
-        groupsMorletData = {group: [] for group in self.groupCategories}
-        groupsRawData = {group: [] for group in self.groupCategories}
-        for index in range(len(self.morletFeatures.events)):
-            eventId = self.morletFeatures.events[index][2]
-            eventName = self.eventIdsReversed[eventId]
-            for key in groupsIndexsDict:
-                if eventName.endswith(key) or eventName.endswith(key.upper()):
-                    groupsIndexsDict[key].append(index)
-                    break
-         
-        for group in self.groupCategories:
-            groupsMorletData[group] = self.morletFeatures[groupsIndexsDict[group]].get_data()
-            groupsRawData[group] = self.epochsData[groupsIndexsDict[group]].get_data()
-        
-        self.groupedMorletData = groupsMorletData
-        self.groupedRawData = groupsRawData
-
-        print(f"{Fore.MAGENTA} Extracted data for groups: {', '.join(self.groupCategories)}{Style.RESET_ALL}")
-        printSectionFooter("✅ Group Data Extraction Complete ✅")
-
     def displayGroupInfo(self):
-        """
-        Display information about the group categories.
-
-        This method prints out the details of the group categories in a clear
-        and visually appealing format.
-
-        Returns:
-            None
-        """
         printSectionHeader("ℹ️ Group Categories Information ℹ️")
-        print(f' Subject ID:               {self.subjectId}')
-        print(f' Session ID:               {self.sessionId}')
-        print(f' Run ID:                   {self.runId}')
-        print(f" DataFolder:               {self.groupFolder}")
-        print(f"{Fore.MAGENTA} Group Categories: {', '.join(self.groupCategories)}{Style.RESET_ALL}".center(60))
+        print(f' Subject ID:               {self.subjectId}')
+        print(f' Session ID:               {self.sessionId}')
+        print(f' Run ID:                   {self.runId}')
+        print(f" DataFolder:               {self.groupFolder}")
+        print(f"{Fore.MAGENTA} Group Categories: {', '.join(self.groupCategories)}{Style.RESET_ALL}".center(60))
         printSectionFooter("✅ Group Information Display Complete ✅")
-    
+
     def computeMorletFeatures(self):
-        """
-        Compute time-frequency representations using Morlet wavelets.
-
-        This method computes the time-frequency representations of the epochs
-        using Morlet wavelets.
-
-        Returns:
-            None
-        """
-        printSectionHeader(" Computing Morlet Features ")
+        printSectionHeader(" Computing Morlet Features ")
         self.morletFeatures = self.epochsData.compute_tfr(
             method='morlet',
             freqs=self.frequencyRange,
@@ -453,48 +390,67 @@ class GroupDataExtractor:
             return_itc=False,
             average=False
         )
-        print(f" Computed Morlet features for {len(self.morletFeatures), self.morletFeatures.get_data().shape} epochs")
+        print(f" Computed Morlet features for {len(self.morletFeatures)}, shape: {self.morletFeatures.get_data().shape}")
         printSectionFooter("✅ Morlet Feature Computation Complete ✅")
-    
-    
-    def makeTrainDataset(self):
-        printSectionHeader(" Creating Training Dataset ")
-        morletFeatures = None
-        rawFeatures = None
-        labels = None
-        flag = 0
-        index = 0
+
+    def extractDataForGroups(self):
+        printSectionHeader(" Extracting Morlet and Raw Features for Groups ")
+        groupsIndexsDict = {group: [] for group in self.groupCategories}
+        self.groupedMorletData = {group: [] for group in self.groupCategories}
+        self.groupedRawData = {group: [] for group in self.groupCategories}
+
+        for index, (_, _, event_id) in enumerate(self.morletFeatures.events):
+            eventName = self.eventIdsReversed[event_id]
+            for key in self.groupCategories:
+                if eventName.lower().endswith(key.lower()):
+                    groupsIndexsDict[key].append(index)
+                    break
+
         for group in self.groupCategories:
-            if flag != 0:
-                morletData = self.groupedMorletData[group]
-                rawData = self.groupedRawData[group]
-                shape = morletData.shape
-                morletFeatures = np.concatenate((morletFeatures, morletData), axis=0)
-                rawFeatures = np.concatenate((rawFeatures, rawData), axis=0)
-                labels += [index]*shape[0]
-                print(f"{Fore.MAGENTA} Group {group} with Morlet {morletData.shape} shape{Style.RESET_ALL}")                
-                print(f"{Fore.MAGENTA} Group {group} with Raw{rawData.shape} shape{Style.RESET_ALL}") 
-            else:
-                morletFeatures = self.groupedMorletData[group]
-                rawFeatures = self.groupedRawData[group]
-                shape = morletFeatures.shape
-                labels = [index]*shape[0]
-                print(f"{Fore.MAGENTA} Group {group} with Morlet {morletFeatures.shape} shape{Style.RESET_ALL}")  
-                print(f"{Fore.MAGENTA} Group {group} with {rawFeatures.shape} shape{Style.RESET_ALL}")  
-                flag = 1
-            index += 1
-        morletFeatures = morletFeatures[:,:,:,int(abs(config.tmin*1000)):]
-        rawFeatures = rawFeatures[:,:,int(abs(config.tmin*1000)):]
+            self.groupedMorletData[group] = self.morletFeatures[groupsIndexsDict[group]].get_data()
+            self.groupedRawData[group] = self.epochsData[groupsIndexsDict[group]].get_data()
 
-        self.morletFeatures = morletFeatures
-        self.rawFeatures = rawFeatures
-        self.labels = labels
-        
-        print(f"{Fore.MAGENTA} Created training dataset with {self.morletFeatures.shape} Morlet samples{Style.RESET_ALL}")
-        print(f"{Fore.MAGENTA} Created training dataset with {self.rawFeatures.shape} Raw samples{Style.RESET_ALL}")
+        print(f"{Fore.MAGENTA} Extracted data for groups: {', '.join(self.groupCategories)}{Style.RESET_ALL}")
+        printSectionFooter("✅ Group Data Extraction Complete ✅")
 
-        printSectionFooter("✅ Training Dataset Creation Complete ✅")
-        
+    def makeTrainDataset(self, test_size=0.3):
+        printSectionHeader(" Creating Training Dataset ")
+        morlet_features, raw_features, labels = [], [], []
+
+        for index, group in enumerate(self.groupCategories):
+            morlet_data = self.groupedMorletData[group]
+            raw_data = self.groupedRawData[group]
+            
+            morlet_features.append(morlet_data)
+            raw_features.append(raw_data)
+            labels.extend([index] * len(morlet_data))
+            
+            print(f"{Fore.MAGENTA} Group {group}: Morlet shape {morlet_data.shape}, Raw shape {raw_data.shape}{Style.RESET_ALL}")
+
+        self.morletFeatures = np.concatenate(morlet_features)
+        self.rawFeatures = np.concatenate(raw_features)
+        self.labels = np.array(labels)
+
+        # Adjust time window
+        time_start = int(abs(config.tmin * 1000))
+        self.morletFeatures = self.morletFeatures[:, :, :, time_start:]
+        self.rawFeatures = self.rawFeatures[:, :, time_start:]
+
+        # Split into train and test sets
+        from sklearn.model_selection import train_test_split
+        self.X_train_morlet, self.X_test_morlet, self.X_train_raw, self.X_test_raw, self.y_train, self.y_test = train_test_split(
+            self.morletFeatures, self.rawFeatures, self.labels, test_size=test_size, stratify=self.labels, random_state=42
+        )
+
+        print(f"{Fore.MAGENTA} Created dataset with {len(self.labels)} samples{Style.RESET_ALL}")
+        print(f"{Fore.MAGENTA} Morlet features shape: {self.morletFeatures.shape}{Style.RESET_ALL}")
+        print(f"{Fore.MAGENTA} Raw features shape: {self.rawFeatures.shape}{Style.RESET_ALL}")
+        printSectionFooter("✅ Dataset Creation Complete ✅")
+
+    def process_data(self):
+        self.computeMorletFeatures()
+        self.extractDataForGroups()
+        self.makeTrainDataset()
 
 
 
@@ -583,9 +539,10 @@ class GroupDataExtractor1:
         printSectionFooter("✅ GroupDataExtractor Initialization Complete ✅")
         
         self.displayGroupInfo()
-        self.computeMorletFeatures()
-        self.extractDataForGroups()
-        self.makeTrainDataset()
+        #self.computeMorletFeatures()
+        #self.extractDataForGroups()
+        #self.makeTrainDataset()
+        
     def loadEpochsDataFromFile(self, filepath):
         self.epochsData = mne.read_epochs(filepath, preload=True)
         
