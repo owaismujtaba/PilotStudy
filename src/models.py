@@ -9,8 +9,7 @@ from tensorflow.keras import layers, models, Input
 from tensorflow.keras.optimizers import Adam
 import pdb
 import os
-if config.device == 'CPU':
-    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
 from tensorflow import keras
 
 from imblearn.over_sampling import RandomOverSampler
@@ -20,6 +19,9 @@ import tensorflow as tf
 from tensorflow.keras import layers, models, Input
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
+
+if config.device == 'CPU':
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 class ComplexDualInputNeuralNetwork():
     def __init__(self, timesteps, num_classes):
@@ -191,14 +193,6 @@ class DualInputNeuralNetwork(tf.keras.Model):
 
 
 
-
-
-
-
-
-
-
-
 class NNModel:
     def __init__(self, inputShape) -> None:
         self.inputShape = inputShape
@@ -240,9 +234,7 @@ class NNModel:
     def predict(self, xTest):
         return self.model.predict(xTest)
 
-    
-
-
+  
 class RandomForestModel:
     def __init__(self, 
             nEstimators=[100, 200, 300, 400, 500], randomState=42,
