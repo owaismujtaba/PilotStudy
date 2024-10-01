@@ -1,7 +1,7 @@
 from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 import numpy as np
-from src.utils import printSectionFooter, printSectionHeader
+from src.utils.utils import printSectionFooter, printSectionHeader
 import pdb
 from pathlib import Path
 import pandas as pd

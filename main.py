@@ -7,13 +7,13 @@ from pathlib import Path
 import os
 import pandas as pd
 
-from src.bids_dataset import XDFData
-import src.config as config
-from src.data_extractor import GroupDataExtractor
+from data.bids_dataset import XDFData
+import utils.config as config
+from data.data_extractor import GroupDataExtractor
 from src.models import RandomForestModel, NNModel, DualInputNeuralNetwork
 from src.trainer import ModelTrainer
-from src.utils import printSectionFooter, printSectionHeader
-from src.utils import normalize_data
+from utils.utils import printSectionFooter, printSectionHeader
+from utils.utils import normalize_data
 
 init(autoreset=True)
 

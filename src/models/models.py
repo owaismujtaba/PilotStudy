@@ -1,24 +1,22 @@
+import os
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import RandomizedSearchCV
-import src.config as config
-from sklearn.model_selection import train_test_split
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 import tensorflow as tf
+from tensorflow import keras
 from tensorflow.keras import layers, models, Input
 from tensorflow.keras.optimizers import Adam
-import pdb
-import os
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
-from tensorflow import keras
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.metrics import classification_report
+from sklearn.model_selection import train_test_split
 
 from imblearn.over_sampling import RandomOverSampler
 
 
-import tensorflow as tf
-from tensorflow.keras import layers, models, Input
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
+import src.utils.config as config
+import pdb
+
 
 if config.device == 'CPU':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'

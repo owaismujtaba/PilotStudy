@@ -1,5 +1,5 @@
 
-import src.config as config
+import src.utils.config as config
 import numpy as np
 
 def printSectionHeader(message):
