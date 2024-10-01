@@ -9,6 +9,16 @@ trainModels = False
 visualization = True
 
 
+# Modality selction Variable
+taskName = None
+speechType=None
+languageElement = 'Experiment'
+eventType='Start'
+presentationMode='Speech'
+
+
+
+
 # Directories
 currDir = os.getcwd()
 rawDataDir = Path(currDir, 'RawData', 'EEG')

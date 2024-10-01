@@ -1,27 +1,28 @@
-import pdb
-from colorama import Fore, Style, init
-from scipy.stats import zscore
+import os
 import numpy as np
 import tensorflow as tf
 from pathlib import Path
-import os
-import pandas as pd
 
-from data.bids_dataset import XDFData
-import utils.config as config
-from data.data_extractor import GroupDataExtractor
-from src.models import RandomForestModel, NNModel, DualInputNeuralNetwork
-from src.trainer import ModelTrainer
-from utils.utils import printSectionFooter, printSectionHeader
-from utils.utils import normalize_data
+import pandas as pd
+from colorama import Fore, Style, init
+
+from src.models.models import RandomForestModel, NNModel, DualInputNeuralNetwork
+from src.models.trainer import ModelTrainer
+from src.data.bids_dataset import XDFData
+from src.data.data_extractor import VowelDataExtractor
+import src.utils.config as config
+from src.utils.utils import printSectionFooter, printSectionHeader
+from src.utils.utils import normalize_data
+
+import pdb
 
 init(autoreset=True)
 
 
 if config.visualization:
-    from src.visualization import plot_vowvel_acitvity
+    from src.utils.visualization import plotVowelActivityAllSubjects
 
-    plot_vowvel_acitvity()
+    plotVowelActivityAllSubjects()
 
 
 
