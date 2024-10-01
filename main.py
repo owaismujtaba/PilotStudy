@@ -1,97 +1,169 @@
 import pdb
+from colorama import Fore, Style, init
+from scipy.stats import zscore
+import numpy as np
+import tensorflow as tf
+from pathlib import Path
+import os
+import pandas as pd
+
 from src.bids_dataset import XDFData
 import src.config as config
-from src.data_extractor import extractWordSyllableDataForAllSubjects
-from src.dataset_loader import VowelDataset
-from src.models import RandomForestModel
+from src.data_extractor import GroupDataExtractor
+from src.models import RandomForestModel, NNModel, DualInputNeuralNetwork
 from src.trainer import ModelTrainer
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
+from src.utils import printSectionFooter, printSectionHeader
+from src.utils import normalize_data
 
-filepath='C:\\DeepRESTORE\\PilotStudy\\RawData\\sub-P001\\ses-S001\\eeg\\sub-P001_ses-S001_task-Default_run-001_eeg.xdf'
+init(autoreset=True)
 
-subjectId = '01'
-sessionId = '01'
-runId = '01'
+
+if config.visualization:
+    from src.visualization import plot_vowvel_acitvity
+
+    plot_vowvel_acitvity()
+
+
+
 
 
 if config.trainModels:
-    print('\n' + '=' * 60)
-    print('🚀  Starting Model Training Process  🚀'.center(60))
-    print('=' * 60)
+    printSectionHeader('  Starting Model Training Process  '.center(60))
 
-    vowelDatasetExtractor = VowelDataset(
-        rootDir=config.dataDir,
-        subjectId=subjectId,
-        sessionId=sessionId,
-        speechType='Silent',
-        languageElement='Experiment',
-        eventType='Start',
-        trialPhase=None,
-        presentationMode='Speech'
-    )
-    data, labels = vowelDatasetExtractor.vowelData
-    data = data[:,:,500:]
-    
-    # Reshape data for PCA
-    nSamples, nChannels, nTimepoints = data.shape
-    data_reshaped = data.reshape(nSamples, -1)
-    
-    # Apply StandardScaler
-    print("Applying StandardScaler")
-    scaler = StandardScaler()
-    data_scaled = scaler.fit_transform(data_reshaped)
-    
-    # Apply PCA
-    print("Applying PCA")
-    pca = PCA(n_components=0.99, svd_solver='full')
-    dataPca = pca.fit_transform(data_scaled)
-    
-    print(f"Original shape: {data.shape}, PCA shape: {dataPca.shape}")
-    print(f"Number of components: {pca.n_components_}")
-    
-    model = RandomForestModel()
-    trainer = ModelTrainer()
-    trainer.trainModel(model, dataPca, labels)
-    
-    print('\n' + '*' * 60)
-    print('✅  Model Training Process Complete  ✅'.center(60))
-    print('*' * 60 + '\n')
-    
-    pdb.set_trace()
+    file = pd.read_csv('/home/owaismujtaba/projects/PilotStudy/files.csv')
 
+    subjects = file['subject'].values
+    sessions = file['session'].values
+    speechType='Silent'
+    languageElement='Experiment'
+    eventType='Start'
+    trialPhase=None
+    presentationMode='Speech'
+    for index in range(len(sessions)):
+        subjectId = subjects[index]
+        sessionId = sessions[index]
+        
+        if subjectId< 10:
+            subjectId = f'0{subjectId}'
+        else:
+            subjectId = str(subjectId)
+        sessionId = f'0{sessionId}'
 
+        dataExtractor = GroupDataExtractor(
+            subjectId=subjectId,
+            sessionId=sessionId,
+            taskName='PilotStudy',
+            speechType=speechType,
+            languageElement=languageElement,
+            eventType=eventType,
+            trialPhase=trialPhase,
+            presentationMode=presentationMode,        
+        )
 
-if config.extractSyllableWordData:
-    print('\n' + '=' * 60)
-    print('🔄  Starting Syllable and Word Data Extraction  🔄'.center(60))
-    print('=' * 60)
+        morletData, rawData, labels = dataExtractor.morletFeatures, dataExtractor.rawFeatures, dataExtractor.labels
+        print(f"{Fore.YELLOW}1️⃣ Applying zscore normalization...{Style.RESET_ALL}")
+        
+        morletData = normalize_data(morletData)
+        rawData = normalize_data(rawData)
 
-    extractWordSyllableDataForAllSubjects(
-        speechType='Silent',
-        languageElement='Experiment',
-        eventType='Start',
-        trialPhase=None,
-        presentationMode='Speech'
-    )
+        nSamples,channels,  nFreqBins, nTimepoints = morletData.shape
+        
+        
 
-    print('\n' + '*' * 60)
-    print('✅  Syllable and Word Data Extraction Complete  ✅'.center(60))
-    print('*' * 60 + '\n')
+        '''
+        print(f"{Fore.YELLOW}2️⃣ Applying PCA...{Style.RESET_ALL}")   
+        pca = PCA(n_components=0.99, svd_solver='full')
+        dataPca = pca.fit_transform(data_scaled)
+        
+        '''
+        #printSectionHeader(f"Original shape: {dataScaled.shape}")
+        name = f'sub-{subjectId}_ses-{sessionId}'
+        destination = Path(
+            config.resultsDir, speechType,
+            languageElement, eventType, trialPhase,presentationMode
+        )
+        os.makedirs(destination)
+        
+
+        model = DualInputNeuralNetwork(timesteps=1501, num_classes=5)
+        trainer = ModelTrainer(name=name, destination=destination)
+        labels = np.array(labels)
+        trainer.trainModel(model, [rawData, morletData], labels)
+        
+        print('\n' + '*' * 60)
+        print('✅  Model Training Process Complete  ✅'.center(60))
+        print('*' * 60 + '\n')
+
+if config.loadData:
+    printSectionHeader('  Starting Data Extraction  '.center(60))
+
+    import pandas as pd
+
+    file = pd.read_csv('/home/owaismujtaba/projects/PilotStudy/files.csv')
+
+    subjects = file['subject'].values
+    sessions = file['session'].values
+    for index in range(len(sessions)):
+        subjectId = subjects[index]
+        sessionId = sessions[index]
+        
+        if subjectId< 10:
+            subjectId = f'0{subjectId}'
+        else:
+            subjectId = str(subjectId)
+        sessionId = f'0{sessionId}'
+        data = GroupDataExtractor(
+            subjectId=subjectId,
+            sessionId=sessionId,
+            runId=runId,
+            taskName='PilotStudy',
+            speechType='Real',
+            languageElement='Experiment',
+            eventType='Start',
+            trialPhase=None,
+            presentationMode='Speech'
+        )
+
+    printSectionFooter('✅  Data Extraction Complete  ✅')
+
+    printSectionFooter('✅  Syllable and Word Data Extraction Complete  ✅')
 
 if config.createBIDSFile:
-    print('\n' + '=' * 60)
-    print('📂  Starting BIDS File Creation  📂'.center(60))
-    print('=' * 60)
 
-    data = XDFData(
-        filePath=filepath,
-        subjectId=subjectId,
-        sessionId=sessionId,
-        runId=runId
-    )
+    import pandas as pd
 
-    print('\n' + '*' * 60)
-    print('✅  BIDS File Creation Complete  ✅'.center(60))
-    print('*' * 60 + '\n')
+    file = pd.read_csv('/home/owaismujtaba/projects/PilotStudy/files.csv')
+
+    subjects = file['subject'].values
+    sessions = file['session'].values
+    paths = file['paths'].values
+    for index in range(len(sessions)):
+        subjectId = subjects[index]
+        sessionId = sessions[index]
+        if subjectId<13:
+            continue
+        
+        if subjectId< 10:
+            subjectId = f'0{subjectId}'
+        else:
+            subjectId = str(subjectId)
+        sessionId = f'0{sessionId}'
+        filepath = paths[index]
+
+
+        printSectionHeader('  Starting BIDS File Creation  ')
+        printSectionHeader('  XDFData Details  ')
+        print(f"File Path: {filepath}".center(60))
+        print(f"Subject ID: {subjectId}".center(60))
+        print(f"Session ID: {sessionId}".center(60))
+        print(f"Run ID: {runId}".center(60))
+        print('-' * 60 + '\n')
+        data = XDFData(
+            filePath=filepath,
+            subjectId=subjectId,
+            sessionId=sessionId,
+            runId=runId
+        )
+
+    printSectionFooter('✅  BIDS File Creation Complete  ✅'.center(60))
 

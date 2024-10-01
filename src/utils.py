@@ -1,4 +1,7 @@
 
+import src.config as config
+import numpy as np
+
 def printSectionHeader(message):
     """
     Print a formatted section header.
@@ -6,9 +9,9 @@ def printSectionHeader(message):
     Args:
         message (str): The message to be displayed in the header.
     """
-    print("\n" + "=" * 60)
-    print(message.center(60))
-    print("=" * 60 + "\n")
+    print("\n" + "=" * config.terminalWidth)
+    print(f'\033[1m{message.center(config.terminalWidth)}\033[0m')
+    print("=" * config.terminalWidth + "\n")
 
 def printSectionFooter(message):
     """
@@ -17,6 +20,12 @@ def printSectionFooter(message):
     Args:
         message (str): The message to be displayed in the footer.
     """
-    print('\n' + '=' * 60)
-    print(message.center(60))
-    print('=' * 60 + "\n")
+    print('\n' + '=' * config.terminalWidth)
+    print(f'\033[1m{message.center(config.terminalWidth)}\033[0m')
+    print('=' * config.terminalWidth + "\n")
+
+def normalize_data(data):
+    mean = np.mean(data, axis=(0, 1,2), keepdims=True)
+    std = np.std(data, axis=(0, 1,2), keepdims=True)
+
+    return (data-mean)/(std+1e-8)

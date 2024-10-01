@@ -2,8 +2,246 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV
 import src.config as config
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 import tensorflow as tf
-from tensorflow.keras import layers, models
+from tensorflow.keras import layers, models, Input
+from tensorflow.keras.optimizers import Adam
+import pdb
+import os
+if config.device == 'CPU':
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+from tensorflow import keras
+
+from imblearn.over_sampling import RandomOverSampler
+
+
+import tensorflow as tf
+from tensorflow.keras import layers, models, Input
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+
+class ComplexDualInputNeuralNetwork():
+    def __init__(self, timesteps, num_classes):
+        super(ComplexDualInputNeuralNetwork, self).__init__()
+        
+        # Input layers
+        input1 = Input(shape=(64, timesteps))
+        input2 = Input(shape=(64, 10, timesteps))
+        
+        # Process first input
+        x1 = self.process_1d_input(input1)
+        
+        # Process second input
+        x2 = self.process_2d_input(input2)
+        
+        # Concatenate both inputs
+        combined = layers.Concatenate()([x1, x2])
+        
+        # Dense layers
+        x = self.dense_block(combined, 512)
+        x = self.dense_block(x, 256)
+        x = self.dense_block(x, 128)
+        
+        # Output layer
+        output = layers.Dense(num_classes, activation='softmax')(x)
+        
+        self.model = models.Model(inputs=[input1, input2], outputs=output)
+        
+    
+
+    def process_1d_input(self, x):
+        x = layers.Conv1D(64, 3, activation='relu', padding='same')(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.Conv1D(128, 3, activation='relu', padding='same')(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.MaxPooling1D(2)(x)
+        x = layers.Conv1D(256, 3, activation='relu', padding='same')(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.GlobalAveragePooling1D()(x)
+        return x
+
+    def process_2d_input(self, x):
+        x = layers.Conv2D(64, (3,3), activation='relu', padding='same')(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.Conv2D(128, (3,3), activation='relu', padding='same')(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.MaxPooling2D((2,2))(x)
+        x = layers.Conv2D(256, (3,3), activation='relu', padding='same')(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.GlobalAveragePooling2D()(x)
+        return x
+
+    def dense_block(self, x, units):
+        x = layers.Dense(units)(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.Activation('relu')(x)
+        x = layers.Dropout(0.5)(x)
+        return x
+
+    def train(self, X, labels, test_size=0.2, epochs=100, batch_size=32):
+        # Split the data
+        data1, data2 = X
+        x1_train, x1_test, x2_train, x2_test, y_train, y_test = train_test_split(
+            data1, data2, labels, test_size=test_size, random_state=42
+        )
+
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+        loss_fn = tf.keras.losses.SparseCategoricalCrossentropy()
+        
+        self.model.compile(optimizer=optimizer, loss=loss_fn, metrics=['accuracy'])
+        
+        callbacks = [
+            tf.keras.callbacks.EarlyStopping(patience=20, restore_best_weights=True),
+            tf.keras.callbacks.ReduceLROnPlateau(factor=0.5, patience=10, min_lr=1e-6),
+            tf.keras.callbacks.ModelCheckpoint('best_model.h5', save_best_only=True)
+        ]
+
+        history = self.model.fit(
+            [x1_train, x2_train], y_train, 
+            epochs=epochs, 
+            batch_size=batch_size, 
+            validation_split=0.15,
+            callbacks=callbacks
+        )
+        predictions = self.model.predict([x1_test, x2_test])
+        predictions = np.argmax(predictions, axis=1)
+        report = classification_report(predictions, y_test)
+        print(report) 
+        return history, (x1_test, x2_test, y_test)
+
+    def predict(self, x1_test, x2_test):
+        return self.model.predict([x1_test, x2_test])
+
+    def evaluate(self, x1_test, x2_test, y_test):
+        return self.model.evaluate([x1_test, x2_test], y_test)
+
+
+class DualInputNeuralNetwork(tf.keras.Model):
+    def __init__(self, timesteps, num_classes):
+        super(DualInputNeuralNetwork, self).__init__()
+        
+        # Input layers
+        input1 = Input(shape=(64, timesteps))
+        input2 = Input(shape=(64, 10, timesteps))
+        
+        # Process first input
+        x1 = layers.Flatten()(input1)
+        x1 = layers.Dense(128, activation='relu')(x1)
+        x1 = layers.Dropout(0.3)(x1)
+        
+        # Process second input
+        x2 = layers.Reshape((64*10, timesteps))(input2)
+        x2 = layers.Flatten()(x2)
+        x2 = layers.Dense(128, activation='relu')(x2)
+        x2 = layers.Dropout(0.3)(x2)
+        
+        # Concatenate both inputs
+        combined = layers.Concatenate()([x1, x2])
+        
+        # Dense layers
+        x = layers.Dense(64, activation='relu')(combined)
+        x = layers.Dropout(0.3)(x)
+        x = layers.Dense(32, activation='relu')(x)
+        x = layers.Dropout(0.3)(x)
+        
+        # Output layer
+        output = layers.Dense(num_classes, activation='softmax')(x)
+        
+        self.model = models.Model(inputs=[input1, input2], outputs=output)
+        
+    def call(self, inputs):
+        return self.model(inputs)
+
+    def train(self, X, labels, epochs=50, batch_size=32, validation_split=0.2):
+        rawFeatures, morletFeatures = X
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+        loss_fn = tf.keras.losses.SparseCategoricalCrossentropy()
+        
+        self.model.compile(optimizer=optimizer, loss=loss_fn, metrics=['accuracy'])
+        xTrainMorlet, xTestMorlet, xTrainRaw, xTestRaw, yTrain, yTest = train_test_split(
+                morletFeatures, rawFeatures,
+                labels, test_size=0.2, random_state=42
+        ) 
+        history = self.model.fit(
+            [xTrainRaw, xTrainMorlet], yTrain, 
+            epochs=epochs, 
+            batch_size=batch_size, 
+            validation_split=validation_split,
+            callbacks=[
+                tf.keras.callbacks.EarlyStopping(patience=10, restore_best_weights=True),
+                tf.keras.callbacks.ReduceLROnPlateau(factor=0.5, patience=5)
+            ]
+        )
+        predictions = self.model.predict([xTestRaw, xTestMorlet])
+        predictions = np.argmax(predictions, axis=1)
+        report = classification_report(predictions, yTest)
+        print(report) 
+        self.evaluate([xTestRaw, xTestMorlet], yTest)
+        return history
+
+
+
+    def predict(self, X):
+        return self.model.predict(X)
+    
+    def evaluate(self, X, y ):
+        return self.model.evaluate(X, y)
+
+
+
+
+
+
+
+
+
+
+
+
+class NNModel:
+    def __init__(self, inputShape) -> None:
+        self.inputShape = inputShape
+        self.model = keras.Sequential([
+            layers.Dense(64, activation='relu', input_shape=self.inputShape),  # First layer
+            layers.Dense(128, activation='relu'),
+            layers.Dense(256, activation='relu'),
+            layers.Dense(128, activation='relu'),
+            layers.Flatten(),                       
+            layers.Dense(config.nClasses, activation='softmax')            # Output layer
+        ])
+        print(f'Num of classes :{config.nClasses}')
+    def train(self, xTrain, yTrain, epochs=100, batchSize=8):
+        '''
+        from imblearn.over_sampling import SMOTE
+        oversampler = SMOTE(random_state=42)
+        xResampled, yResampled  = oversampler.fit_resample(xTrain, yTrain)
+        '''
+                # Split into training and validation sets
+        xTrain, xVal, yTrain, yVal = train_test_split(
+            xTrain, yTrain, test_size=0.15, random_state=42
+        )
+        # Early stopping to prevent overfitting
+        earlyStopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+        reduceLearningRate = ReduceLROnPlateau(factor=0.5, patience=5)
+        # Compile the model with accuracy metric
+        self.model.compile(optimizer=Adam(learning_rate=1e-4),
+                           loss='sparse_categorical_crossentropy',
+                           metrics=['accuracy'])
+        print(self.model.summary())
+        # Train the model
+        self.model.fit(
+            xTrain, yTrain, 
+            validation_data=(xVal, yVal), 
+            epochs=epochs, batch_size=batchSize, 
+            callbacks=[earlyStopping, reduceLearningRate]
+        )
+
+    def predict(self, xTest):
+        return self.model.predict(xTest)
+
+    
+
 
 class RandomForestModel:
     def __init__(self, 
