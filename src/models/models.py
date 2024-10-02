@@ -415,4 +415,69 @@ class SVMModel:
         # Return accuracy score
         return self.model.score(X_test_scaled, y_test)
 
+class EEGNet(tf.keras.Model):
+    def __init__(self, nb_classes, Chans=64, Samples=128, dropoutRate=0.5, kernLength=64, F1=8, D=2, F2=16):
+        super(EEGNet, self).__init__()
+        
+        self.block1 = tf.keras.Sequential([
+            layers.Conv2D(F1, (1, kernLength), padding='same', input_shape=(Chans, Samples, 1)),
+            layers.BatchNormalization(),
+            layers.DepthwiseConv2D((Chans, 1), use_bias=False, depth_multiplier=D),
+            layers.BatchNormalization(),
+            layers.Activation('elu'),
+            layers.AveragePooling2D((1, 4)),
+            layers.Dropout(dropoutRate)
+        ])
+        
+        self.block2 = tf.keras.Sequential([
+            layers.SeparableConv2D(F2, (1, 16), use_bias=False, padding='same'),
+            layers.BatchNormalization(),
+            layers.Activation('elu'),
+            layers.AveragePooling2D((1, 8)),
+            layers.Dropout(dropoutRate)
+        ])
+        
+        self.flatten = layers.Flatten()
+        self.dense = layers.Dense(nb_classes, activation='softmax')
+
+    def call(self, inputs):
+        x = self.block1(inputs)
+        x = self.block2(x)
+        x = self.flatten(x)
+        return self.dense(x)
+
+    def train(self, X, y, epochs=100, batch_size=32, validation_split=0.2):
+        # Reshape input to (samples, channels, time points, 1)
+        X = X.reshape(X.shape[0], X.shape[1], X.shape[2], 1)
+
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+        loss_fn = tf.keras.losses.SparseCategoricalCrossentropy()
+        
+        self.compile(optimizer=optimizer, loss=loss_fn, metrics=['accuracy'])
+        
+        callbacks = [
+            tf.keras.callbacks.EarlyStopping(patience=20, restore_best_weights=True),
+            tf.keras.callbacks.ReduceLROnPlateau(factor=0.5, patience=10, min_lr=1e-6),
+            tf.keras.callbacks.ModelCheckpoint('best_eegnet_model.h5', save_best_only=True)
+        ]
+
+        history = self.fit(
+            X, y, 
+            epochs=epochs, 
+            batch_size=batch_size, 
+            validation_split=validation_split,
+            callbacks=callbacks
+        )
+        return history
+
+    def predict(self, X):
+        # Reshape input to (samples, channels, time points, 1)
+        X = X.reshape(X.shape[0], X.shape[1], X.shape[2], 1)
+        return super().predict(X)
+
+    def evaluate(self, X, y):
+        # Reshape input to (samples, channels, time points, 1)
+        X = X.reshape(X.shape[0], X.shape[1], X.shape[2], 1)
+        return super().evaluate(X, y)
+
 # ... rest of the existing code ...
