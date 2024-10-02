@@ -1,5 +1,7 @@
 import os
 import mne
+import time
+from datetime import timedelta
 import numpy as np
 from pathlib import Path
 
@@ -11,10 +13,10 @@ from src.utils.utils import printSectionFooter, printSectionHeader
 
 import pdb
 
-import time
-from datetime import timedelta
+
 
 init(autoreset=True)
+
 
 class NeuralDatasetExtractor:
     """
@@ -23,7 +25,8 @@ class NeuralDatasetExtractor:
     This class provides methods to load, process, and extract EEG data
     from BIDS-formatted datasets. It includes functionality for initializing
     the dataset, extracting event information, and creating epochs for words
-    and syllables based on various parameters such as speech type, language element,
+    and syllables based on various parameters such as speech type, 
+    language element, event type, trail phase and presentation mode
     
 
     Attributes:
@@ -48,10 +51,13 @@ class NeuralDatasetExtractor:
     """
 
     def __init__(self, 
-            subjectId='01', sessionId='01', runId='01', 
-            taskName='PilotStudy', bidsDir=config.bidsDir, 
-            speechType='Silent', languageElement='Experiment',
-            eventType='Start', trialPhase=None, presentationMode='Speech'
+            subjectId=None, sessionId=None, 
+            runId='01', taskName='PilotStudy', 
+            bidsDir=config.BIDS_DIR, 
+            speechType=config.SPEECH_TYPE, 
+            languageElement=config.LANGUAGE_ELEMENT,
+            eventType=config.EVENT_TYPE, trialPhase=None, 
+            presentationMode=config.PRESENTATION_MODE
         ):
         
         printSectionHeader(f"{Fore.CYAN} Initializing NeuralDatasetExtractor {Style.RESET_ALL}")
@@ -74,6 +80,8 @@ class NeuralDatasetExtractor:
 
         self.displayInfo()
 
+        printSectionFooter(f"{Fore.GREEN} NeuralDatasetExtractor Initialization Complete {Style.RESET_ALL}")
+       
         printSectionHeader(f"{Fore.YELLOW} Loading Raw Data {Style.RESET_ALL}")
         self.rawData = read_raw_bids(self.bidsFilepath)
         self.channels = self.rawData.ch_names
@@ -84,7 +92,6 @@ class NeuralDatasetExtractor:
         self.eventIdsReversed = {value: key for key, value in self.eventIds.items()}
         self.eventIdsReversed = {value: key for key, value in self.eventIds.items()}
         
-        printSectionFooter(f"{Fore.GREEN} NeuralDatasetExtractor Initialization Complete {Style.RESET_ALL}")
         self.getRealtedEvents()
         self.extractEvents()
         self.saveEpochedData()
@@ -126,7 +133,7 @@ class NeuralDatasetExtractor:
         self.rawData.notch_filter([50, 100])
         
         print(f"{Fore.YELLOW}2️⃣ Applying bandpass filter...{Style.RESET_ALL}")
-        self.rawData.filter(l_freq=0.1, h_freq=120, n_jobs=config.nJobs)
+        self.rawData.filter(l_freq=0.1, h_freq=120, n_jobs=config.NJOBS)
 
         print(f"{Fore.YELLOW}3️⃣ Performing ICA...{Style.RESET_ALL}")
         ica = mne.preprocessing.ICA(max_iter='auto', random_state=42)
@@ -179,8 +186,8 @@ class NeuralDatasetExtractor:
         self.epochsData = mne.Epochs(
             self.rawData, 
             events=self.intrestedEvents, 
-            tmin=config.tmin, tmax=config.tmax,
-            baseline=(config.tmin, 0), 
+            tmin=config.T_MIN, tmax=config.T_MAX,
+            baseline=(config.T_MIN, 0), 
             picks=self.channels, 
             preload=True,
             verbose=False
@@ -282,7 +289,7 @@ class NeuralDatasetExtractor:
         
         printSectionHeader(" Saving Epoched Data ")
 
-        dataDir = config.dataDir
+        dataDir = config.BIDS_DIR
         folder = f'{self.speechType}{self.languageElement}{self.eventType}{self.trialPhase}{self.presentationMode}'
         filename = f"sub-{self.subjectId}_ses-{self.sessionId}_task-{self.taskName}_run-{self.runId}_epo.fif"
         destinationDir = Path(dataDir, f'sub-{self.subjectId}', f'ses-{self.sessionId}', folder)
@@ -290,7 +297,7 @@ class NeuralDatasetExtractor:
         Path(destinationDir).mkdir(parents=True, exist_ok=True)
         
         filepath = Path(destinationDir) / filename
-        self.epochsData.apply_baseline(baseline=(config.tmin, 0))
+        #self.epochsData.apply_baseline(baseline=(config.T_MIN, 0))
         self.epochsData.save(filepath, overwrite=True)
         
         print(f" Saved epoched data to: {filepath}")
@@ -329,14 +336,15 @@ class VowelDataExtractor:
     """
 
     def __init__(self, 
-        subjectId='01', sessionId='01', runId='01', 
-        taskName='PilotStudy', bidsDir=config.bidsDir, 
-        speechType=config.speechType, 
-        languageElement=config.languageElement,
-        eventType=config.eventType, trialPhase=None, 
-        presentationMode=config.presentationMode,
-        groupCategories=['a', 'e', 'i', 'o', 'u']
-    ):
+        subjectId=None, sessionId=None, 
+            runId='01', taskName='PilotStudy', 
+            bidsDir=config.BIDS_DIR, 
+            speechType=config.SPEECH_TYPE, 
+            languageElement=config.LANGUAGE_ELEMENT,
+            eventType=config.EVENT_TYPE, trialPhase=None, 
+            presentationMode=config.PRESENTATION_MODE,
+            groupCategories=['a', 'e', 'i', 'o', 'u']
+        ):
         printSectionHeader(" Initializing VowelDataExtractor ")
         
         self.subjectId = subjectId
@@ -368,7 +376,7 @@ class VowelDataExtractor:
             None
         """
         start_time = time.time()
-        dataDir = config.dataDir
+        dataDir = config.BIDS_DIR
         folder = f'{self.speechType}{self.languageElement}{self.eventType}{self.trialPhase}{self.presentationMode}'
         filename = f"sub-{self.subjectId}_ses-{self.sessionId}_task-{self.taskName}_run-{self.runId}_epo.fif"
         destinationDir = Path(dataDir, f'sub-{self.subjectId}', f'ses-{self.sessionId}', folder)
@@ -504,9 +512,9 @@ class VowelDataExtractor:
         self.labels = np.array(labels)
 
         # Adjust time window
-        time_start = int(abs(config.tmin * 1000))
-        self.morletFeatures = self.morletFeatures[:, :, :, time_start:]
-        self.rawFeatures = self.rawFeatures[:, :, time_start:]
+        timeStart = int(abs(config.T_MIN * 1000))
+        self.morletFeatures = self.morletFeatures[:, :, :, timeStart:]
+        self.rawFeatures = self.rawFeatures[:, :, timeStart:]
 
         # Split into train and test sets
         from sklearn.model_selection import train_test_split
