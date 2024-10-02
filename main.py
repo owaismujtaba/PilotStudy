@@ -1,14 +1,13 @@
 import os
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 from pathlib import Path
-
-import pandas as pd
 from colorama import Fore, Style, init
 
 from src.models.models import RandomForestModel, NNModel, DualInputNeuralNetwork
 from src.models.trainer import ModelTrainer
-from src.data.bids_dataset import XDFData
+from src.data.bids_dataset import createBIDSDataset
 from src.data.data_extractor import VowelDataExtractor
 import src.utils.config as config
 from src.utils.utils import printSectionFooter, printSectionHeader
@@ -130,41 +129,8 @@ if config.loadData:
     printSectionFooter('✅  Syllable and Word Data Extraction Complete  ✅')
 
 if config.createBIDSFile:
-
-    import pandas as pd
-
-    file = pd.read_csv('/home/owaismujtaba/projects/PilotStudy/files.csv')
-
-    subjects = file['subject'].values
-    sessions = file['session'].values
-    paths = file['paths'].values
-    for index in range(len(sessions)):
-        subjectId = subjects[index]
-        sessionId = sessions[index]
-        if subjectId<13:
-            continue
-        
-        if subjectId< 10:
-            subjectId = f'0{subjectId}'
-        else:
-            subjectId = str(subjectId)
-        sessionId = f'0{sessionId}'
-        filepath = paths[index]
+    filePath = '/home/owaismujtaba/projects/PilotStudy/files.csv'
+    createBIDSDataset(csvFilePath=filePath)
 
 
-        printSectionHeader('  Starting BIDS File Creation  ')
-        printSectionHeader('  XDFData Details  ')
-        print(f"File Path: {filepath}".center(60))
-        print(f"Subject ID: {subjectId}".center(60))
-        print(f"Session ID: {sessionId}".center(60))
-        print(f"Run ID: {runId}".center(60))
-        print('-' * 60 + '\n')
-        data = XDFData(
-            filePath=filepath,
-            subjectId=subjectId,
-            sessionId=sessionId,
-            runId=runId
-        )
-
-    printSectionFooter('✅  BIDS File Creation Complete  ✅'.center(60))
-
+    
