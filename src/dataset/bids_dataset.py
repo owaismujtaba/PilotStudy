@@ -309,10 +309,18 @@ class XDFData:
         printSectionHeader(f"{Fore.CYAN}📊 Creating BIDS EDF File 📊")
         
         startTime = time.time()
-        
+        uniqueAnnotations = set(self.eegData.annotations.descriptions)
+        eventId = {desc: i+1 for i, desc in enumerate(uniqueAnnotations)}
         print(f'{Fore.CYAN}📝 Writing EEG data to EDF...'.ljust(config.terminalWidth), end='')
         writeStart = time.time()
-        write_raw_bids(self.eegData, bids_path=self.bidsPath, allow_preload=True, format='EDF', overwrite=True)
+        write_raw_bids(
+            self.eegData, 
+            bids_path=self.bidsPath, 
+            allow_preload=True, 
+            format='EDF', 
+            overwrite=True,
+            event_id=eventId
+        )
         writeTime = time.time() - writeStart
         print(f'✅ Done in {writeTime:.2f} seconds')
         
