@@ -3,17 +3,22 @@ import numpy as np
 from matplotlib import pyplot as plt
 from pathlib import Path
 
-from src.data.data_extractor import VowelDataExtractor
+from src.dataset.data_extractor import VowelDataExtractor
 import src.utils.config as config
 from src.utils.utils import printSectionFooter, printSectionHeader
 import pdb
 
 
 
-def plotVowelActivity(subjectId='01', sessionId='01', runId='01', 
-        taskName='PilotStudy', bidsDir=config.bidsDir, 
-        speechType=None, languageElement='Experiment',
-        eventType='Start', trialPhase=None, presentationMode='Speech',
+def plotVowelActivity(
+        subjectId=None, sessionId=None, 
+        runId='01', taskName='PilotStudy', 
+        bidsDir=config.BIDS_DIR, 
+        speechType=config.SPEECH_TYPE,
+        languageElement=config.LANGUAGE_ELEMENT,
+        eventType=config.EVENT_TYPE,
+        trialPhase=None, 
+        presentationMode=config.PRESENTATION_MODE,
         groupCategories=['a', 'e', 'i', 'o', 'u']):
     
     printSectionHeader("Plotting Vowel Activity")
@@ -62,19 +67,15 @@ def plotVowelActivity(subjectId='01', sessionId='01', runId='01',
         ax.set_title(f'Channel: {channelNames[i]}')
         ax.axvline(x=0, color='black', linestyle='--', alpha=0.5)  # Add vertical line at x=0 (event onset)
         
-        # Set x-axis ticks and labels
         ax.set_xticks([-500, 0, 500, 1000, 1500])
         ax.set_xticklabels(['-500', '0', '500', '1000', '1500'])
         ax.set_xlabel('ms')
         
-        # Remove top and right spines
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         
-        # Remove individual legends
         ax.get_legend().remove() if ax.get_legend() else None
 
-    # Add legend to the last subplot
     axes[-1].legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
     
     plt.tight_layout()
@@ -93,17 +94,15 @@ def plotVowelActivity(subjectId='01', sessionId='01', runId='01',
 
 
 
-def plotVowelActivityAllSubjects(bidsDir=config.bidsDir, taskName='PilotStudy'):
+def plotVowelActivityAllSubjects(bidsDir=config.BIDS_DIR, taskName='PilotStudy'):
     printSectionHeader("Plotting Vowel Activity for All Subjects and Sessions")
     runId = '01'
-    # Get all subject directories
     subjectDirs = [d for d in os.listdir(bidsDir) if d.startswith('sub-')]
     
     for subjectDir in subjectDirs:
         subjectId = subjectDir.split('-')[1]
         subjectPath = Path(bidsDir, subjectDir)
         
-        # Get all session directories for the current subject
         sessionDirs = [d for d in os.listdir(subjectPath) if d.startswith('ses-')]
         for sessionDir in sessionDirs:
             sessionId = sessionDir.split('-')[1]           
@@ -121,5 +120,3 @@ def plotVowelActivityAllSubjects(bidsDir=config.bidsDir, taskName='PilotStudy'):
                 print(f"Error processing Subject {subjectId}, Session {sessionId}, Run {runId}: {str(e)}")
     
     printSectionFooter("Vowel Activity Plotting for All Subjects Completed")
-
-
