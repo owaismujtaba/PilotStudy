@@ -51,7 +51,7 @@ def plotVowelActivity(subjectId='01', sessionId='01', runId='01',
         groupsAverageData[group] = epochs[groupsIndexsDict[group]].get_data().mean(axis=0)
 
     print("🖼️ Creating plot...")
-    fig, axes = plt.subplots(8, 8, figsize=(20, 20), sharex=True, sharey=True)
+    fig, axes = plt.subplots(8, 8, figsize=(20, 20), sharex=True, sharey=False)
     axes = axes.flatten()
 
     colors = {'a': 'red', 'e': 'blue', 'i': 'green', 'o': 'purple', 'u': 'orange'}

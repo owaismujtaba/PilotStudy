@@ -10,6 +10,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
 
 from imblearn.over_sampling import RandomOverSampler
 
@@ -363,3 +365,54 @@ class ChronoNet(tf.keras.Model):
         return self.predict(x_test)
 
     
+
+class SVMModel:
+    def __init__(self, kernel='rbf', C=1.0, gamma='scale', random_state=42):
+        self.model = SVC(kernel=kernel, C=C, gamma=gamma, random_state=random_state)
+        self.scaler = StandardScaler()
+
+    def train(self, X_train, y_train):
+        # Reshape the input if necessary
+        if len(X_train.shape) > 2:
+            X_train = X_train.reshape(X_train.shape[0], -1)
+        
+        # Scale the features
+        X_train_scaled = self.scaler.fit_transform(X_train)
+        
+        # Train the model
+        self.model.fit(X_train_scaled, y_train)
+        
+        # Print the model details
+        print("SVM Model trained with the following parameters:")
+        print(f"Kernel: {self.model.kernel}")
+        print(f"C: {self.model.C}")
+        print(f"Gamma: {self.model.gamma}")
+
+    def predict(self, X_test):
+        # Reshape the input if necessary
+        if len(X_test.shape) > 2:
+            X_test = X_test.reshape(X_test.shape[0], -1)
+        
+        # Scale the features
+        X_test_scaled = self.scaler.transform(X_test)
+        
+        return self.model.predict(X_test_scaled)
+
+    def evaluate(self, X_test, y_test):
+        # Reshape the input if necessary
+        if len(X_test.shape) > 2:
+            X_test = X_test.reshape(X_test.shape[0], -1)
+        
+        # Scale the features
+        X_test_scaled = self.scaler.transform(X_test)
+        
+        # Make predictions
+        y_pred = self.model.predict(X_test_scaled)
+        
+        # Print classification report
+        print(classification_report(y_test, y_pred))
+        
+        # Return accuracy score
+        return self.model.score(X_test_scaled, y_test)
+
+# ... rest of the existing code ...
