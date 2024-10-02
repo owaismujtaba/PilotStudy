@@ -1,13 +1,16 @@
-from sklearn.metrics import classification_report
-from sklearn.model_selection import train_test_split
-import numpy as np
-from src.utils.utils import printSectionFooter, printSectionHeader
-import pdb
 from pathlib import Path
 import pandas as pd
 
+from sklearn.metrics import classification_report
+from sklearn.model_selection import train_test_split
+from src.utils.utils import printSectionFooter, printSectionHeader
+import src.utils.config as config
+import pdb
+
 class ModelTrainer:
-    def __init__(self,name,destination, validationSize=0.15, randomState=42):
+    def __init__(self, name,
+                destination,
+                validationSize=0.15, randomState=42):
         printSectionHeader(" Initializing ModelTrainer ")
         self.name = name
         self.destination=destination
@@ -17,7 +20,7 @@ class ModelTrainer:
         
         printSectionFooter("✅ ModelTrainer Initialization Complete ✅")
 
-    def trainModel(self, model, X, y, name):
+    def trainModel(self, model, X, y):
         printSectionHeader("易 Training Model 易")
         
         history = model.train(X, y)
