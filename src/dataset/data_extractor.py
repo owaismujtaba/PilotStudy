@@ -405,11 +405,11 @@ class VowelDataExtractor:
             None
         """
         printSectionHeader("ℹ️ Group Categories Information ℹ️")
-        print(f' Subject ID:               {self.subjectId}')
-        print(f' Session ID:               {self.sessionId}')
-        print(f' Run ID:                   {self.runId}')
-        print(f" DataFolder:               {self.groupFolder}")
-        print(f"{Fore.MAGENTA} Group Categories: {', '.join(self.groupCategories)}{Style.RESET_ALL}".center(60))
+        print(f"🧑‍🤝‍🧑 Subject ID:               {self.subjectId}")
+        print(f"📅 Session ID:               {self.sessionId}")
+        print(f"🏃‍♂️ Run ID:                   {self.runId}")
+        print(f"📁 DataFolder:               {self.groupFolder}")
+        print(f"{Fore.MAGENTA}📊 Group Categories: {', '.join(self.groupCategories)}{Style.RESET_ALL}".ljust(60))
         printSectionFooter("✅ Group Information Display Complete ✅")
 
     def computeMorletFeatures(self):
