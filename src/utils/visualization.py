@@ -13,7 +13,6 @@ import pdb
 def plotVowelActivity(
         subjectId=None, sessionId=None, 
         runId='01', taskName='PilotStudy', 
-        bidsDir=config.BIDS_DIR, 
         speechType=config.SPEECH_TYPE,
         languageElement=config.LANGUAGE_ELEMENT,
         eventType=config.EVENT_TYPE,
@@ -25,16 +24,9 @@ def plotVowelActivity(
     print(f"📊 Subject: {subjectId}, Session: {sessionId}, Run: {runId}")
     
     dataExtractor = VowelDataExtractor(
-        subjectId=subjectId,
-        sessionId=sessionId,
-        runId=runId,
-        taskName=taskName,
-        speechType=speechType,
-        languageElement=languageElement,
-        eventType=eventType,
-        trialPhase=trialPhase,
-        presentationMode=presentationMode,
-        groupCategories=groupCategories
+        subjectId=subjectId, sessionId=sessionId, runId=runId, taskName=taskName,
+        speechType=speechType, languageElement=languageElement, eventType=eventType,
+        trialPhase=trialPhase, presentationMode=presentationMode, groupCategories=groupCategories
     )
 
     print("📈 Extracting and processing data...")
@@ -82,8 +74,8 @@ def plotVowelActivity(
     plt.subplots_adjust(bottom=0.08, top=0.95)  # Adjust top margin
 
     print("💾 Saving the plot...")
-    filename = f"sub-{subjectId}_ses-{sessionId}_vowelActivity.png"
-    destination = Path(config.imagesDir, f'sub-{subjectId}', f'ses-{sessionId}')
+    filename = f'{speechType}{languageElement}{eventType}{trialPhase}{presentationMode}_vowelActivity.png'
+    destination = Path(config.IMAGES_DIR, f'sub-{subjectId}', f'ses-{sessionId}')
     os.makedirs(destination, exist_ok=True)
     filepath = Path(destination, filename)
     plt.savefig(filepath, dpi=300, bbox_inches='tight')
@@ -114,7 +106,6 @@ def plotVowelActivityAllSubjects(bidsDir=config.BIDS_DIR, taskName='PilotStudy')
                         sessionId=sessionId,
                         runId=runId,
                         taskName=taskName,
-                        bidsDir=bidsDir
                 )
             except Exception as e:
                 print(f"Error processing Subject {subjectId}, Session {sessionId}, Run {runId}: {str(e)}")
