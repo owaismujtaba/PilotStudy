@@ -107,10 +107,16 @@ class NeuralDatasetExtractor:
             None
         """
         printSectionHeader("ℹ️ Subject, Session, Task, and Run Information ℹ️")
-        print(f"六‍ Subject ID: {self.subjectId}".center(60))
-        print(f" Session ID: {self.sessionId}".center(60))
-        print(f"‍♂️ Run ID: {self.runId}".center(60))
-        print(f" Task Name: {self.taskName}".center(60))
+        print(f"{Fore.CYAN}🧑‍🔬 Subject ID: {self.subjectId}".center(60))  
+        print(f"📅 Session ID: {self.sessionId}".center(60))   
+        print(f"🏃‍♂️ Run ID: {self.runId}".center(60))         
+        print(f"📝 Task Name: {self.taskName}".center(60))    
+        print(f"🔊 Speech Type: {self.speechType}".center(60)) 
+        print(f"🔤 Language Element: {self.languageElement}".center(60)) 
+        print(f"📊 Event Type: {self.eventType}".center(60))   
+        print(f"⏳ Trial Phase: {self.trialPhase}".center(60))   
+        print(f"🖥️ Presentation Mode: {self.presentationMode}".center(60)) 
+        print(f"📂 BIDS Directory: {self.bidsDir}{Style.RESET_ALL}")  
     
     def preprocessData(self):
         """
@@ -376,13 +382,12 @@ class VowelDataExtractor:
             None
         """
         start_time = time.time()
-        dataDir = config.BIDS_DIR
+        dataDir = config.DATA_DIR
         folder = f'{self.speechType}{self.languageElement}{self.eventType}{self.trialPhase}{self.presentationMode}'
         filename = f"sub-{self.subjectId}_ses-{self.sessionId}_task-{self.taskName}_run-{self.runId}_epo.fif"
         destinationDir = Path(dataDir, f'sub-{self.subjectId}', f'ses-{self.sessionId}', folder)
         filepath = Path(destinationDir, filename)
         self.groupFolder = folder
-
         if not os.path.exists(filepath):
             print(f"{Fore.YELLOW}🔍 Epochs file not found. Creating new epochs...{Style.RESET_ALL}")
             self.neuralData = NeuralDatasetExtractor(
@@ -413,11 +418,11 @@ class VowelDataExtractor:
             None
         """
         printSectionHeader("ℹ️ Group Categories Information ℹ️")
-        print(f' Subject ID:               {self.subjectId}')
-        print(f' Session ID:               {self.sessionId}')
-        print(f' Run ID:                   {self.runId}')
-        print(f" DataFolder:               {self.groupFolder}")
-        print(f"{Fore.MAGENTA} Group Categories: {', '.join(self.groupCategories)}{Style.RESET_ALL}".center(60))
+        print(f"{Fore.BLUE}🧑 Subject ID:               {self.subjectId}{Style.RESET_ALL}".ljust(60))
+        print(f"{Fore.GREEN}📅 Session ID:               {self.sessionId}{Style.RESET_ALL}".ljust(60))
+        print(f"{Fore.YELLOW}🏃‍♂️ Run ID:                   {self.runId}{Style.RESET_ALL}".ljust(60))
+        print(f"{Fore.MAGENTA}📁 Data Folder:               {self.groupFolder}{Style.RESET_ALL}".ljust(60))
+        print(f"{Fore.CYAN}📊 Group Categories: {', '.join(self.groupCategories)}{Style.RESET_ALL}".ljust(60))
         printSectionFooter("✅ Group Information Display Complete ✅")
 
     def computeMorletFeatures(self):
