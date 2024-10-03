@@ -116,7 +116,12 @@ class NeuralDatasetExtractor:
         print(f"📊 Event Type: {self.eventType}".center(60))   
         print(f"⏳ Trial Phase: {self.trialPhase}".center(60))   
         print(f"🖥️ Presentation Mode: {self.presentationMode}".center(60)) 
-        print(f"📂 BIDS Directory: {self.bidsDir}{Style.RESET_ALL}")  
+        print(f"📂 BIDS Directory: {self.bidsDir}".center(60))  
+        print(f"📈 Frequency Range: {self.frequencyRange}".center(60))  # New line added
+        print(f"📡 Channels: {self.channels}".center(60))  # New line added
+        print(f"🔍 Events: {self.events}".center(60))  # New line added
+        print(f"📊 Event IDs: {self.eventIds}".center(60))  # New line added
+        print(f"📊 Event IDs Reversed: {self.eventIdsReversed}".center(60))  # New line added
     
     def preprocessData(self):
         """
@@ -423,6 +428,14 @@ class VowelDataExtractor:
         print(f"{Fore.YELLOW}🏃‍♂️ Run ID:                   {self.runId}{Style.RESET_ALL}".ljust(60))
         print(f"{Fore.MAGENTA}📁 Data Folder:               {self.groupFolder}{Style.RESET_ALL}".ljust(60))
         print(f"{Fore.CYAN}📊 Group Categories: {', '.join(self.groupCategories)}{Style.RESET_ALL}".ljust(60))
+        print(f"🔊 Speech Type: {self.speechType}".center(60)) 
+        print(f"🔤 Language Element: {self.languageElement}".center(60)) 
+        print(f"📊 Event Type: {self.eventType}".center(60))   
+        print(f"⏳ Trial Phase: {self.trialPhase}".center(60))   
+        print(f"🖥️ Presentation Mode: {self.presentationMode}".center(60)) 
+        print(f"📂 BIDS Directory: {self.bidsDir}".center(60))  
+        print(f"📈 Frequency Range: {self.frequencyRange}".center(60))  
+       
         printSectionFooter("✅ Group Information Display Complete ✅")
 
     def computeMorletFeatures(self):
