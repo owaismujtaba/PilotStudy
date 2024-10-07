@@ -55,6 +55,7 @@ class NeuralDatasetExtractor:
             runId='01', taskName='PilotStudy', 
             bidsDir=config.BIDS_DIR, 
             speechType=config.SPEECH_TYPE, 
+            startEnd=config.START_END,
             languageElement=config.LANGUAGE_ELEMENT,
             eventType=config.EVENT_TYPE, trialPhase=None, 
             presentationMode=config.PRESENTATION_MODE
@@ -69,6 +70,7 @@ class NeuralDatasetExtractor:
         self.bidsDir = bidsDir
         self.speechType = speechType
         self.languageElement = languageElement
+        self.startEnd=startEnd
         self.eventType = eventType
         self.trialPhase = trialPhase
         self.presentationMode = presentationMode
@@ -106,22 +108,19 @@ class NeuralDatasetExtractor:
         Returns:
             None
         """
+        color = Fore.MAGENTA
         printSectionHeader("ℹ️ Subject, Session, Task, and Run Information ℹ️")
-        print(f"{Fore.CYAN}🧑‍🔬 Subject ID: {self.subjectId}".center(60))  
-        print(f"📅 Session ID: {self.sessionId}".center(60))   
-        print(f"🏃‍♂️ Run ID: {self.runId}".center(60))         
-        print(f"📝 Task Name: {self.taskName}".center(60))    
-        print(f"🔊 Speech Type: {self.speechType}".center(60)) 
-        print(f"🔤 Language Element: {self.languageElement}".center(60)) 
-        print(f"📊 Event Type: {self.eventType}".center(60))   
-        print(f"⏳ Trial Phase: {self.trialPhase}".center(60))   
-        print(f"🖥️ Presentation Mode: {self.presentationMode}".center(60)) 
-        print(f"📂 BIDS Directory: {self.bidsDir}".center(60))  
-        print(f"📈 Frequency Range: {self.frequencyRange}".center(60))  # New line added
-        print(f"📡 Channels: {self.channels}".center(60))  # New line added
-        print(f"🔍 Events: {self.events}".center(60))  # New line added
-        print(f"📊 Event IDs: {self.eventIds}".center(60))  # New line added
-        print(f"📊 Event IDs Reversed: {self.eventIdsReversed}".center(60))  # New line added
+        print(f"{color}\033[1m\033[4m🧑‍🔬 Subject ID:            {self.subjectId}".ljust(60))  
+        print(f"{color}\033[1m📅 Session ID:            {self.sessionId}".ljust(60))   
+        print(f"{color}\033[1m🏃‍♂️ Run ID:            {self.runId}".ljust(60))         
+        print(f"{color}\033[1m📝 Task Name:             {self.taskName}".ljust(60))    
+        print(f"{color}\033[1m🔊 Speech Type:           {self.speechType}.ljust(60)") 
+        print(f"{color}\033[1m🔤 Language Element:          {self.languageElement}".ljust(60)) 
+        print(f"{color}\033[1m📊 Event Type:            {self.eventType}".ljust(60)) 
+        print(f"{color}\033[1m⏳ Start/End:             {self.startEnd}".ljust(60))   
+        print(f"{color}\033[1m⏳ Trial Phase:           {self.trialPhase}".ljust(60))   
+        print(f"{color}\033[1m🖥️ Presentation Mode:             {self.presentationMode}".ljust(60)) 
+        print(f"{color}\033[1m📂 BIDS Directory: {self.bidsDir}{Style.RESET_ALL}".ljust(60))  
     
     def preprocessData(self):
         """
@@ -172,12 +171,10 @@ class NeuralDatasetExtractor:
         for index in range(len(self.events)):
             eventCode = self.events[index][2]
             eventName = self.eventIdsReversed[eventCode]
-            if (self._checkSpeechType(eventName, self.speechType) and 
-                self._checkLanguageElement(eventName, self.languageElement) and 
-                self._checkEventType(eventName, self.eventType) and 
-                self._checkTrialPhase(eventName, self.trialPhase) and 
-                self._checkPresentationMode(eventName, self.presentationMode)
-            ):
+            if all(self._checkEventProperty(eventName, parm) for parm in [
+                self.speechType, self.languageElement, self.eventType,
+                self.startEnd, self.trialPhase, self.presentationMode
+            ]):
                 intrestedEvents.append(self.events[index])
         self.intrestedEvents = np.array(intrestedEvents)
         print(f"{Fore.MAGENTA} Found {len(self.intrestedEvents)} events of interest{Style.RESET_ALL}".center(60))
@@ -208,81 +205,10 @@ class NeuralDatasetExtractor:
         print(f"{Fore.GREEN} Created {len(self.epochsData)} epochs{Style.RESET_ALL}".center(60))
         printSectionFooter("✅ Epoch Creation Complete ✅")
 
-    
-    def _checkSpeechType(self, eventName, speechType):
-        """
-        Check if the event matches the specified speech type.
-
-        Args:
-            eventName (str): The name of the event to check.
-            speechType (str): The type of speech to check against.
-
-        Returns:
-            bool: True if the event matches the speech type, False otherwise.
-        """
-        if speechType is None:
+    def _checkEventProperty(self, eventName, propertyValue):
+        if propertyValue is None:
             return True
-        return speechType in eventName
-
-    def _checkLanguageElement(self, eventName, languageElement):
-        """
-        Check if the event matches the specified language element.
-
-        Args:
-            eventName (str): The name of the event to check.
-            languageElement (str): The language element to check against.
-
-        Returns:
-            bool: True if the event matches the language element, False otherwise.
-        """
-        if languageElement is None:
-            return True
-        return languageElement in eventName
-
-    def _checkEventType(self, eventName, eventType):
-        """
-        Check if the event matches the specified event type.
-
-        Args:
-            eventName (str): The name of the event to check.
-            eventType (str): The type of event to check against.
-
-        Returns:
-            bool: True if the event matches the event type, False otherwise.
-        """
-        if eventType is None:
-            return True
-        return eventType in eventName
-
-    def _checkTrialPhase(self, eventName, trialPhase):
-        """
-        Check if the event matches the specified trial phase.
-
-        Args:
-            eventName (str): The name of the event to check.
-            trialPhase (str): The trial phase to check against.
-
-        Returns:
-            bool: True if the event matches the trial phase, False otherwise.
-        """
-        if trialPhase is None:
-            return True
-        return trialPhase in eventName
-    
-    def _checkPresentationMode(self, eventName, presentationMode):
-        """
-        Check if the event matches the specified presentation mode.
-
-        Args:
-            eventName (str): The name of the event to check.
-            presentationMode (str): The presentation mode to check against.
-
-        Returns:
-            bool: True if the event matches the presentation mode, False otherwise.
-        """
-        if presentationMode is None:
-            return True
-        return presentationMode in eventName
+        return propertyValue in eventName
     
     def saveEpochedData(self):
         """
@@ -300,8 +226,8 @@ class NeuralDatasetExtractor:
         
         printSectionHeader(" Saving Epoched Data ")
 
-        dataDir = config.BIDS_DIR
-        folder = f'{self.speechType}{self.languageElement}{self.eventType}{self.trialPhase}{self.presentationMode}'
+        dataDir = config.DATA_DIR
+        folder = f'{self.speechType}{self.languageElement}{self.eventType}{self.startEnd}{self.trialPhase}{self.presentationMode}'
         filename = f"sub-{self.subjectId}_ses-{self.sessionId}_task-{self.taskName}_run-{self.runId}_epo.fif"
         destinationDir = Path(dataDir, f'sub-{self.subjectId}', f'ses-{self.sessionId}', folder)
 
@@ -352,6 +278,7 @@ class VowelDataExtractor:
             bidsDir=config.BIDS_DIR, 
             speechType=config.SPEECH_TYPE, 
             languageElement=config.LANGUAGE_ELEMENT,
+            startEnd = config.START_END,
             eventType=config.EVENT_TYPE, trialPhase=None, 
             presentationMode=config.PRESENTATION_MODE,
             groupCategories=['a', 'e', 'i', 'o', 'u']
@@ -365,6 +292,7 @@ class VowelDataExtractor:
         self.bidsDir = bidsDir
         self.speechType = speechType
         self.languageElement = languageElement
+        self.startEnd = startEnd
         self.eventType = eventType
         self.trialPhase = trialPhase
         self.presentationMode = presentationMode 
@@ -388,7 +316,7 @@ class VowelDataExtractor:
         """
         start_time = time.time()
         dataDir = config.DATA_DIR
-        folder = f'{self.speechType}{self.languageElement}{self.eventType}{self.trialPhase}{self.presentationMode}'
+        folder = f'{self.speechType}{self.languageElement}{self.eventType}{self.startEnd}{self.trialPhase}{self.presentationMode}'
         filename = f"sub-{self.subjectId}_ses-{self.sessionId}_task-{self.taskName}_run-{self.runId}_epo.fif"
         destinationDir = Path(dataDir, f'sub-{self.subjectId}', f'ses-{self.sessionId}', folder)
         filepath = Path(destinationDir, filename)
@@ -422,19 +350,23 @@ class VowelDataExtractor:
         Returns:
             None
         """
-        printSectionHeader("ℹ️ Group Categories Information ℹ️")
-        print(f"{Fore.BLUE}🧑 Subject ID:               {self.subjectId}{Style.RESET_ALL}".ljust(60))
-        print(f"{Fore.GREEN}📅 Session ID:               {self.sessionId}{Style.RESET_ALL}".ljust(60))
-        print(f"{Fore.YELLOW}🏃‍♂️ Run ID:                   {self.runId}{Style.RESET_ALL}".ljust(60))
-        print(f"{Fore.MAGENTA}📁 Data Folder:               {self.groupFolder}{Style.RESET_ALL}".ljust(60))
-        print(f"{Fore.CYAN}📊 Group Categories: {', '.join(self.groupCategories)}{Style.RESET_ALL}".ljust(60))
-        print(f"🔊 Speech Type: {self.speechType}".center(60)) 
-        print(f"🔤 Language Element: {self.languageElement}".center(60)) 
-        print(f"📊 Event Type: {self.eventType}".center(60))   
-        print(f"⏳ Trial Phase: {self.trialPhase}".center(60))   
-        print(f"🖥️ Presentation Mode: {self.presentationMode}".center(60)) 
-        print(f"📂 BIDS Directory: {self.bidsDir}".center(60))  
-        print(f"📈 Frequency Range: {self.frequencyRange}".center(60))  
+        
+        printSectionHeader("ℹ️ Subject, Session, Task, and Run Information ℹ️")
+        
+        color = Fore.MAGENTA
+        size= '\033[4m'
+        
+        print(f"{color}{size}🧑‍🔬 Subject ID: {self.subjectId}".ljust(60))  
+        print(f"{color}\033[1m📅 Session ID: {self.sessionId}".ljust(60))   
+        print(f"{color}\033[1m🏃‍♂️ Run ID: {self.runId}".ljust(60))         
+        print(f"{color}\033[1m📝 Task Name: {self.taskName}".ljust(60))    
+        print(f"{color}\033[1m🔊 Speech Type: {self.speechType}".ljust(60)) 
+        print(f"{color}\033[1m🔤 Language Element: {self.languageElement}".ljust(60)) 
+        print(f"{color}\033[1m📊 Event Type: {self.eventType}".ljust(60)) 
+        print(f"{color}\033[1m⏳ Start/End: {self.startEnd}".ljust(60))   
+        print(f"{color}\033[1m⏳ Trial Phase: {self.trialPhase}".ljust(60))   
+        print(f"{color}\033[1m🖥️ Presentation Mode: {self.presentationMode}".ljust(60)) 
+         
        
         printSectionFooter("✅ Group Information Display Complete ✅")
 
@@ -565,3 +497,6 @@ class VowelDataExtractor:
         overall_duration = time.time() - overall_start_time
         print(f"\n{Fore.CYAN}⏱️ Total processing time: {timedelta(seconds=overall_duration)}{Style.RESET_ALL}")
         printSectionFooter(f"{Fore.GREEN}✅ Data Processing Complete ✅{Style.RESET_ALL}")
+
+
+
