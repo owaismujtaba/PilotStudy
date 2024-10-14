@@ -56,8 +56,7 @@ def plotRealSilentAverageActivityAllSubjects():
         for sessionDir in sessionDirs:
             sessionId = sessionDir.split('-')[1]
             try:
-                if subjectId =='03':
-                    plotRealVsSilentActivity(subjectId, sessionId)
+                plotRealVsSilentActivity(subjectId, sessionId)
             except:
                 print('Error')
                 

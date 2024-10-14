@@ -5,9 +5,9 @@ import shutil
 # Functionality
 createBIDSFile = False
 loadData = False 
-trainModels = False
+trainModels = True
 visualization = False
-extractEpochsData = True
+extractEpochsData = False
 
 
 # Modality selction Variable for extracting the events 

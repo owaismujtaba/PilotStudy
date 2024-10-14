@@ -361,6 +361,11 @@ class RealSilentData:
             
             self.realData = self.epochsData[realIndexes]
             self.silentData = self.epochsData[silentIndexes]
+        realData = self.realData.get_data(copy=True)
+        silentData = self.silentData.get_data(copy=True)
+
+        self.data = np.concatenate((realData, silentData), axis=0)
+        self.labels = np.array([0]* realData.shape[0] + [1]*silentData.shape[0])
 
 
 class VowelDataExtractor:

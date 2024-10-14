@@ -43,72 +43,54 @@ if config.visualization:
 
 
 if config.trainModels:
-    from src.dataset.data_extractor import VowelDataExtractor
+    from src.dataset.data_extractor import RealSilentData
     printSectionHeader('  Starting Model Training Process  '.center(60))
 
-    file = pd.read_csv('/home/owaismujtaba/projects/PilotStudy/files.csv')
+    subjectId = '01'
+    sessionId = '01'
+    
+    speechType= config.SPEECH_TYPE
+    languageElement=config.LANGUAGE_ELEMENT
+    eventType=config.EVENT_TYPE
+    trialPhase=config.TRIAL_PHASE
+    presentationMode=config.PRESENTATION_MODE
+    pdb.set_trace()
+    realSilentData = RealSilentData(subjectId=subjectId, sessionId=sessionId)
+    data, labels = realSilentData.data, realSilentData.labels
+    
 
-    subjects = file['subject'].values
-    sessions = file['session'].values
-    speechType='Silent'
-    languageElement='Experiment'
-    eventType='Start'
-    trialPhase=None
-    presentationMode='Speech'
-    for index in range(len(sessions)):
-        subjectId = subjects[index]
-        sessionId = sessions[index]
-        
-        if subjectId< 10:
-            subjectId = f'0{subjectId}'
-        else:
-            subjectId = str(subjectId)
-        sessionId = f'0{sessionId}'
-
-        dataExtractor = VowelDataExtractor(
-            subjectId=subjectId,
-            sessionId=sessionId,
-            taskName='PilotStudy',
-            speechType=speechType,
-            languageElement=languageElement,
-            eventType=eventType,
-            trialPhase=trialPhase,
-            presentationMode=presentationMode,        
-        )
-
-        morletData, rawData, labels = dataExtractor.morletFeatures, dataExtractor.rawFeatures, dataExtractor.labels
-        print(f"{Fore.YELLOW}1️⃣ Applying zscore normalization...{Style.RESET_ALL}")
-        
-        morletData = normalize_data(morletData)
-        rawData = normalize_data(rawData)
-
-        nSamples,channels,  nFreqBins, nTimepoints = morletData.shape
+    
+    print(f"{Fore.YELLOW}1️⃣ Applying zscore normalization...{Style.RESET_ALL}")
+    
+    dataNormalized = normalize_data(data)
+       
+    nSamples, channels, nTimepoints = data.shape
         
         
 
-        '''
+    '''
         print(f"{Fore.YELLOW}2️⃣ Applying PCA...{Style.RESET_ALL}")   
         pca = PCA(n_components=0.99, svd_solver='full')
         dataPca = pca.fit_transform(data_scaled)
         
-        '''
+    '''
         #printSectionHeader(f"Original shape: {dataScaled.shape}")
-        name = f'sub-{subjectId}_ses-{sessionId}'
-        destination = Path(
+    name = f'sub-{subjectId}_ses-{sessionId}'
+    destination = Path(
             config.resultsDir, speechType,
             languageElement, eventType, trialPhase,presentationMode
         )
-        os.makedirs(destination)
+    os.makedirs(destination)
         
 
-        model = DualInputNeuralNetwork(timesteps=1501, num_classes=5)
-        trainer = ModelTrainer(name=name, destination=destination)
-        labels = np.array(labels)
-        trainer.trainModel(model, [rawData, morletData], labels)
+    model = DualInputNeuralNetwork(timesteps=1501, num_classes=5)
+    trainer = ModelTrainer(name=name, destination=destination)
+    labels = np.array(labels)
+    #trainer.trainModel(model, [rawData, morletData], labels)
         
-        print('\n' + '*' * 60)
-        print('✅  Model Training Process Complete  ✅'.center(60))
-        print('*' * 60 + '\n')
+    print('\n' + '*' * 60)
+    print('✅  Model Training Process Complete  ✅'.center(60))
+    print('*' * 60 + '\n')
 
 
     
