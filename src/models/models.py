@@ -20,7 +20,7 @@ import src.utils.config as config
 import pdb
 
 
-if config.device == 'CPU':
+if config.DEVICE == 'CPU':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 
@@ -258,7 +258,9 @@ class EEGNet(tf.keras.Model):
     def train(self, X, y, epochs=100, batch_size=32, validation_split=0.2):
         X = X.reshape(X.shape[0], X.shape[1], X.shape[2], 1)
 
-        xTrain, xTest, 
+        xTrain, xTest, yTrain, yTest = train_test_split(
+            X, y, test_size=0.15, random_state=42  
+        )
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         loss_fn = tf.keras.losses.SparseCategoricalCrossentropy()
         
@@ -271,7 +273,7 @@ class EEGNet(tf.keras.Model):
         ]
 
         history = self.model.fit(
-            X, y, 
+            xTrain, yTrain, 
             epochs=epochs, 
             batch_size=batch_size, 
             validation_split=validation_split,
@@ -281,7 +283,7 @@ class EEGNet(tf.keras.Model):
         predictions = np.argmax(predictions, axis=1)
         report = classification_report(predictions, yTest)
         print(report) 
-        self.evaluate(, yTest)
+        self.evaluate(xTest, yTest)
         return history
 
 

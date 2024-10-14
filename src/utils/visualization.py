@@ -3,36 +3,85 @@ import numpy as np
 from matplotlib import pyplot as plt
 from pathlib import Path
 
-from src.data.data_extractor import VowelDataExtractor
+from src.dataset.data_extractor import VowelDataExtractor
+from src.dataset.data_extractor import RealSilentData
 import src.utils.config as config
 from src.utils.utils import printSectionFooter, printSectionHeader
 import pdb
 
+def plotRealVsSilentActivity(subjectId, sessionId):
+    printSectionHeader("Plotting Average Silent/Real Activity")
+    print(f"\033[1;34m📊 Subject: {subjectId}, Session: {sessionId} 📊\033[0m")  # Blue
+    
+    folder = f'{config.SPEECH_TYPE}{config.LANGUAGE_ELEMENT}{config.EVENT_TYPE}{config.START_END}{config.TRIAL_PHASE}{config.PRESENTATION_MODE}'
+    destination = Path(config.IMAGES_DIR, f'sub-{subjectId}', f'ses-{sessionId}', folder)
+    os.makedirs(destination, exist_ok=True)
+    
+    filename = f'sub-{subjectId}_ses-{sessionId}_{folder}_RealSilentAverage.png'
+    filepath = Path(destination, filename)
+    
+    realSilent = RealSilentData(subjectId, sessionId)
+    realData = realSilent.realData
+    silentData = realSilent.silentData
+    averageRealData = realData.average()
+    averageSilentdata = silentData.average()
 
+    fig, axs = plt.subplots(2, 1, figsize=(10, 5),sharex=True, sharey=True)
+    axs[0].plot(averageRealData.times, averageRealData.data.T)  
+    axs[0].spines['top'].set_visible(False)  
+    axs[0].spines['right'].set_visible(False) 
+    axs[0].spines['bottom'].set_visible(False)
+    axs[0].set_title('Overt')  # Set title for the first subplot
 
-def plotVowelActivity(subjectId='01', sessionId='01', runId='01', 
-        taskName='PilotStudy', bidsDir=config.bidsDir, 
-        speechType=None, languageElement='Experiment',
-        eventType='Start', trialPhase=None, presentationMode='Speech',
+    
+
+    axs[1].plot(averageSilentdata.times, averageSilentdata.data.T)
+    axs[1].set_title('Silent')
+    axs[1].spines['top'].set_visible(False) 
+    axs[1].spines['right'].set_visible(False)
+    
+    plt.tight_layout()
+    plt.savefig(filepath, dpi=600)  
+    plt.close()
+   
+def plotRealSilentAverageActivityAllSubjects():
+    
+    subjectDirs = [d for d in os.listdir(config.BIDS_DIR) if d.startswith('sub-')]
+    
+    for subjectDir in subjectDirs:
+        subjectId = subjectDir.split('-')[1]
+        subjectPath = Path(config.BIDS_DIR, subjectDir)  
+             
+        sessionDirs = [d for d in os.listdir(subjectPath) if d.startswith('ses-')]
+        for sessionDir in sessionDirs:
+            sessionId = sessionDir.split('-')[1]
+            try:
+                if subjectId =='03':
+                    plotRealVsSilentActivity(subjectId, sessionId)
+            except:
+                print('Error')
+                
+
+def plotVowelActivity(
+        subjectId=None, sessionId=None, 
+        runId='01',  
+        speechType=config.SPEECH_TYPE,
+        languageElement=config.LANGUAGE_ELEMENT,
+        eventType=config.EVENT_TYPE,
+        trialPhase=None, 
+        presentationMode=config.PRESENTATION_MODE,
         groupCategories=['a', 'e', 'i', 'o', 'u']):
     
     printSectionHeader("Plotting Vowel Activity")
-    print(f"📊 Subject: {subjectId}, Session: {sessionId}, Run: {runId}")
-    
+    print(f"\033[1;34m📊 Subject: {subjectId}, Session: {sessionId}, Run: {runId} 📊\033[0m")  # Blue
+    taskName='PilotStudy'
     dataExtractor = VowelDataExtractor(
-        subjectId=subjectId,
-        sessionId=sessionId,
-        runId=runId,
-        taskName=taskName,
-        speechType=speechType,
-        languageElement=languageElement,
-        eventType=eventType,
-        trialPhase=trialPhase,
-        presentationMode=presentationMode,
-        groupCategories=groupCategories
+        subjectId=subjectId, sessionId=sessionId, runId=runId, taskName=taskName,
+        speechType=speechType, languageElement=languageElement, eventType=eventType,
+        trialPhase=trialPhase, presentationMode=presentationMode, groupCategories=groupCategories
     )
 
-    print("📈 Extracting and processing data...")
+    print("\033[1;32m📈 Extracting and processing data... 📈\033[0m")  # Green
     epochs = dataExtractor.epochsData
     channelNames = epochs.ch_names
     eventIdsReversed = {value: key for key, value in epochs.event_id.items()}
@@ -50,7 +99,7 @@ def plotVowelActivity(subjectId='01', sessionId='01', runId='01',
     for group in groupCategories:
         groupsAverageData[group] = epochs[groupsIndexsDict[group]].get_data().mean(axis=0)
 
-    print("🖼️ Creating plot...")
+    print("\033[1;33m🖼️ Creating plot... 🖼️\033[0m")  
     fig, axes = plt.subplots(8, 8, figsize=(20, 20), sharex=True, sharey=False)
     axes = axes.flatten()
 
@@ -60,66 +109,56 @@ def plotVowelActivity(subjectId='01', sessionId='01', runId='01',
         for vowel, color in colors.items():
             ax.plot(np.linspace(-500, 1500, groupsAverageData[vowel][i].shape[0]), groupsAverageData[vowel][i], color=color, label=vowel, alpha=0.7)
         ax.set_title(f'Channel: {channelNames[i]}')
-        ax.axvline(x=0, color='black', linestyle='--', alpha=0.5)  # Add vertical line at x=0 (event onset)
-        
-        # Set x-axis ticks and labels
+        ax.axvline(x=0, color='black', linestyle='--', alpha=0.5)  
         ax.set_xticks([-500, 0, 500, 1000, 1500])
-        ax.set_xticklabels(['-500', '0', '500', '1000', '1500'])
-        ax.set_xlabel('ms')
+        ax.set_xticklabels(['-5', '0', '5', '10', '15'])
+        ax.set_xlabel('*100 ms')
         
-        # Remove top and right spines
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         
-        # Remove individual legends
         ax.get_legend().remove() if ax.get_legend() else None
 
-    # Add legend to the last subplot
     axes[-1].legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
     
     plt.tight_layout()
     plt.subplots_adjust(bottom=0.08, top=0.95)  # Adjust top margin
 
-    print("💾 Saving the plot...")
-    filename = f"sub-{subjectId}_ses-{sessionId}_vowelActivity.png"
-    destination = Path(config.imagesDir, f'sub-{subjectId}', f'ses-{sessionId}')
+    print("\033[1;35m💾 Saving the plot... 💾\033[0m")  # Magenta
+    filename = f'{speechType}{languageElement}{eventType}{trialPhase}{presentationMode}_vowelActivityScaled_NotShared.png'
+    destination = Path(config.IMAGES_DIR, f'sub-{subjectId}', f'ses-{sessionId}')
     os.makedirs(destination, exist_ok=True)
     filepath = Path(destination, filename)
     plt.savefig(filepath, dpi=300, bbox_inches='tight')
 
-    print(f"✅ Plot saved at: {filepath}")
+    print(f"\033[1;32m✅ Plot saved at: {filepath} ✅\033[0m")  # Green
     
     printSectionFooter("Vowel Activity Plotting Completed")
 
 
 
-def plotVowelActivityAllSubjects(bidsDir=config.bidsDir, taskName='PilotStudy'):
+def plotVowelActivityAllSubjects(bidsDir=config.BIDS_DIR, taskName='PilotStudy'):
     printSectionHeader("Plotting Vowel Activity for All Subjects and Sessions")
     runId = '01'
-    # Get all subject directories
     subjectDirs = [d for d in os.listdir(bidsDir) if d.startswith('sub-')]
     
     for subjectDir in subjectDirs:
         subjectId = subjectDir.split('-')[1]
         subjectPath = Path(bidsDir, subjectDir)
         
-        # Get all session directories for the current subject
         sessionDirs = [d for d in os.listdir(subjectPath) if d.startswith('ses-')]
         for sessionDir in sessionDirs:
             sessionId = sessionDir.split('-')[1]           
-            print(f"Processing: Subject {subjectId}, Session {sessionId}, Run {runId}")
+            print(f"\033[1;36mProcessing: Subject {subjectId}, Session {sessionId}, Run {runId} 🔄\033[0m")  # Cyan
                 
             try:
+                
                 plotVowelActivity(
                         subjectId=subjectId,
                         sessionId=sessionId,
-                        runId=runId,
-                        taskName=taskName,
-                        bidsDir=bidsDir
+                        runId=runId
                 )
             except Exception as e:
-                print(f"Error processing Subject {subjectId}, Session {sessionId}, Run {runId}: {str(e)}")
+                print(f"\033[1;31mError processing Subject {subjectId}, Session {sessionId}, Run {runId}: {str(e)}\033[0m")  # Red
     
     printSectionFooter("Vowel Activity Plotting for All Subjects Completed")
-
-

@@ -1,5 +1,7 @@
 import os
 import mne
+import time
+from datetime import timedelta
 import numpy as np
 from pathlib import Path
 
@@ -7,14 +9,15 @@ from mne_bids import BIDSPath, read_raw_bids
 from colorama import Fore, Style, init
 
 import src.utils.config as config
+from src.utils.utils import getFolderAndDestination, checkIfEpochsFileExist
 from src.utils.utils import printSectionFooter, printSectionHeader
 
 import pdb
 
-import time
-from datetime import timedelta
+
 
 init(autoreset=True)
+
 
 class NeuralDatasetExtractor:
     """
@@ -23,7 +26,8 @@ class NeuralDatasetExtractor:
     This class provides methods to load, process, and extract EEG data
     from BIDS-formatted datasets. It includes functionality for initializing
     the dataset, extracting event information, and creating epochs for words
-    and syllables based on various parameters such as speech type, language element,
+    and syllables based on various parameters such as speech type, 
+    language element, event type, trail phase and presentation mode
     
 
     Attributes:
@@ -48,10 +52,14 @@ class NeuralDatasetExtractor:
     """
 
     def __init__(self, 
-            subjectId='01', sessionId='01', runId='01', 
-            taskName='PilotStudy', bidsDir=config.bidsDir, 
-            speechType='Silent', languageElement='Experiment',
-            eventType='Start', trialPhase=None, presentationMode='Speech'
+            subjectId=None, sessionId=None, 
+            runId='01', taskName='PilotStudy', 
+            bidsDir=config.BIDS_DIR, 
+            speechType=config.SPEECH_TYPE, 
+            startEnd=config.START_END,
+            languageElement=config.LANGUAGE_ELEMENT,
+            eventType=config.EVENT_TYPE, trialPhase=None, 
+            presentationMode=config.PRESENTATION_MODE
         ):
         
         printSectionHeader(f"{Fore.CYAN} Initializing NeuralDatasetExtractor {Style.RESET_ALL}")
@@ -63,6 +71,7 @@ class NeuralDatasetExtractor:
         self.bidsDir = bidsDir
         self.speechType = speechType
         self.languageElement = languageElement
+        self.startEnd=startEnd
         self.eventType = eventType
         self.trialPhase = trialPhase
         self.presentationMode = presentationMode
@@ -74,17 +83,19 @@ class NeuralDatasetExtractor:
 
         self.displayInfo()
 
+        printSectionFooter(f"{Fore.GREEN} NeuralDatasetExtractor Initialization Complete {Style.RESET_ALL}")
+       
         printSectionHeader(f"{Fore.YELLOW} Loading Raw Data {Style.RESET_ALL}")
         self.rawData = read_raw_bids(self.bidsFilepath)
         self.channels = self.rawData.ch_names
         self.rawData.load_data()
         printSectionFooter(f"{Fore.GREEN}✅ Data Loading Complete ✅{Style.RESET_ALL}")
-        self.preprocessData()
+        
         self.events, self.eventIds = mne.events_from_annotations(self.rawData, verbose=False)
         self.eventIdsReversed = {value: key for key, value in self.eventIds.items()}
         self.eventIdsReversed = {value: key for key, value in self.eventIds.items()}
         
-        printSectionFooter(f"{Fore.GREEN} NeuralDatasetExtractor Initialization Complete {Style.RESET_ALL}")
+        self.preprocessData()
         self.getRealtedEvents()
         self.extractEvents()
         self.saveEpochedData()
@@ -99,11 +110,19 @@ class NeuralDatasetExtractor:
         Returns:
             None
         """
+        color = Fore.MAGENTA
         printSectionHeader("ℹ️ Subject, Session, Task, and Run Information ℹ️")
-        print(f"六‍ Subject ID: {self.subjectId}".center(60))
-        print(f" Session ID: {self.sessionId}".center(60))
-        print(f"‍♂️ Run ID: {self.runId}".center(60))
-        print(f" Task Name: {self.taskName}".center(60))
+        print(f"{color}\033[1m\033[4m🧑‍🔬 Subject ID:            {self.subjectId}".ljust(60))  
+        print(f"{color}\033[1m📅 Session ID:            {self.sessionId}".ljust(60))   
+        print(f"{color}\033[1m🏃‍♂️ Run ID:            {self.runId}".ljust(60))         
+        print(f"{color}\033[1m📝 Task Name:             {self.taskName}".ljust(60))    
+        print(f"{color}\033[1m🔊 Speech Type:           {self.speechType}".ljust(60)) 
+        print(f"{color}\033[1m🔤 Language Element:          {self.languageElement}".ljust(60)) 
+        print(f"{color}\033[1m📊 Event Type:            {self.eventType}".ljust(60)) 
+        print(f"{color}\033[1m⏳ Start/End:             {self.startEnd}".ljust(60))   
+        print(f"{color}\033[1m⏳ Trial Phase:           {self.trialPhase}".ljust(60))   
+        print(f"{color}\033[1m🖥️ Presentation Mode:             {self.presentationMode}".ljust(60)) 
+        print(f"{color}\033[1m📂 BIDS Directory: {self.bidsDir}{Style.RESET_ALL}".ljust(60))  
     
     def preprocessData(self):
         """
@@ -126,14 +145,15 @@ class NeuralDatasetExtractor:
         self.rawData.notch_filter([50, 100])
         
         print(f"{Fore.YELLOW}2️⃣ Applying bandpass filter...{Style.RESET_ALL}")
-        self.rawData.filter(l_freq=0.1, h_freq=120, n_jobs=config.nJobs)
+        self.rawData.filter(l_freq=0.1, h_freq=120, n_jobs=config.NJOBS)
 
-        print(f"{Fore.YELLOW}3️⃣ Performing ICA...{Style.RESET_ALL}")
+        '''
+        print(f"{Fore.YELLOW}3️⃣ Performing ICA...{Style.RESET_ALL}") # Regression Filtering Remove ICA 
         ica = mne.preprocessing.ICA(max_iter='auto', random_state=42)
         rawDataForICA = self.rawData.copy()
         ica.fit(rawDataForICA)
         ica.apply(self.rawData)
-        
+        '''
         print(f"{Fore.YELLOW}4️⃣ Setting EEG reference to FCz{Style.RESET_ALL}")
         self.rawData.set_eeg_reference(ref_channels=['FCz'])
 
@@ -154,15 +174,14 @@ class NeuralDatasetExtractor:
         for index in range(len(self.events)):
             eventCode = self.events[index][2]
             eventName = self.eventIdsReversed[eventCode]
-            if (self._checkSpeechType(eventName, self.speechType) and 
-                self._checkLanguageElement(eventName, self.languageElement) and 
-                self._checkEventType(eventName, self.eventType) and 
-                self._checkTrialPhase(eventName, self.trialPhase) and 
-                self._checkPresentationMode(eventName, self.presentationMode)
-            ):
+            if all(self._checkEventProperty(eventName, parm) for parm in [
+                self.speechType, self.languageElement, self.eventType, 
+                self.startEnd, self.trialPhase, self.presentationMode
+            ]):
                 intrestedEvents.append(self.events[index])
         self.intrestedEvents = np.array(intrestedEvents)
         print(f"{Fore.MAGENTA} Found {len(self.intrestedEvents)} events of interest{Style.RESET_ALL}".center(60))
+        self.displayInfo()
         printSectionFooter(f"✅ Event Extraction Complete ✅")
     
     def extractEvents(self):
@@ -179,8 +198,8 @@ class NeuralDatasetExtractor:
         self.epochsData = mne.Epochs(
             self.rawData, 
             events=self.intrestedEvents, 
-            tmin=config.tmin, tmax=config.tmax,
-            baseline=(config.tmin, 0), 
+            tmin=config.T_MIN, tmax=config.T_MAX,
+            baseline=(config.T_MIN, 0), 
             picks=self.channels, 
             preload=True,
             verbose=False
@@ -190,81 +209,10 @@ class NeuralDatasetExtractor:
         print(f"{Fore.GREEN} Created {len(self.epochsData)} epochs{Style.RESET_ALL}".center(60))
         printSectionFooter("✅ Epoch Creation Complete ✅")
 
-    
-    def _checkSpeechType(self, eventName, speechType):
-        """
-        Check if the event matches the specified speech type.
-
-        Args:
-            eventName (str): The name of the event to check.
-            speechType (str): The type of speech to check against.
-
-        Returns:
-            bool: True if the event matches the speech type, False otherwise.
-        """
-        if speechType is None:
+    def _checkEventProperty(self, eventName, propertyValue):
+        if propertyValue is None:
             return True
-        return speechType in eventName
-
-    def _checkLanguageElement(self, eventName, languageElement):
-        """
-        Check if the event matches the specified language element.
-
-        Args:
-            eventName (str): The name of the event to check.
-            languageElement (str): The language element to check against.
-
-        Returns:
-            bool: True if the event matches the language element, False otherwise.
-        """
-        if languageElement is None:
-            return True
-        return languageElement in eventName
-
-    def _checkEventType(self, eventName, eventType):
-        """
-        Check if the event matches the specified event type.
-
-        Args:
-            eventName (str): The name of the event to check.
-            eventType (str): The type of event to check against.
-
-        Returns:
-            bool: True if the event matches the event type, False otherwise.
-        """
-        if eventType is None:
-            return True
-        return eventType in eventName
-
-    def _checkTrialPhase(self, eventName, trialPhase):
-        """
-        Check if the event matches the specified trial phase.
-
-        Args:
-            eventName (str): The name of the event to check.
-            trialPhase (str): The trial phase to check against.
-
-        Returns:
-            bool: True if the event matches the trial phase, False otherwise.
-        """
-        if trialPhase is None:
-            return True
-        return trialPhase in eventName
-    
-    def _checkPresentationMode(self, eventName, presentationMode):
-        """
-        Check if the event matches the specified presentation mode.
-
-        Args:
-            eventName (str): The name of the event to check.
-            presentationMode (str): The presentation mode to check against.
-
-        Returns:
-            bool: True if the event matches the presentation mode, False otherwise.
-        """
-        if presentationMode is None:
-            return True
-        return presentationMode in eventName
+        return propertyValue in eventName
     
     def saveEpochedData(self):
         """
@@ -282,22 +230,137 @@ class NeuralDatasetExtractor:
         
         printSectionHeader(" Saving Epoched Data ")
 
-        dataDir = config.dataDir
-        folder = f'{self.speechType}{self.languageElement}{self.eventType}{self.trialPhase}{self.presentationMode}'
-        filename = f"sub-{self.subjectId}_ses-{self.sessionId}_task-{self.taskName}_run-{self.runId}_epo.fif"
-        destinationDir = Path(dataDir, f'sub-{self.subjectId}', f'ses-{self.sessionId}', folder)
-
+        filename, folder, destinationDir = getFolderAndDestination(
+            self.subjectId, self.sessionId, self.taskName,
+            self.runId, self.speechType, self.languageElement,
+            self.eventType, self.startEnd, self.trialPhase,
+            self.presentationMode
+        )
         Path(destinationDir).mkdir(parents=True, exist_ok=True)
         
         filepath = Path(destinationDir) / filename
-        self.epochsData.apply_baseline(baseline=(config.tmin, 0))
+        #self.epochsData.apply_baseline(baseline=(config.T_MIN, 0))
         self.epochsData.save(filepath, overwrite=True)
         
         print(f" Saved epoched data to: {filepath}")
         printSectionFooter("✅ Epoched Data Saving Complete ✅")
 
 
+class ExtractEpochs:
+    def __init__(self,
+        subjectId=None, sessionId=None, 
+            runId='01', taskName='PilotStudy', 
+            bidsDir=config.BIDS_DIR, 
+            speechType=config.SPEECH_TYPE, 
+            languageElement=config.LANGUAGE_ELEMENT,
+            startEnd = config.START_END,
+            eventType=config.EVENT_TYPE, 
+            trialPhase=config.TRIAL_PHASE, 
+            presentationMode=config.PRESENTATION_MODE,
+        ):
 
+        printSectionHeader(" Extracting Epochs Data Initialization ")
+
+        self.subjectId = subjectId
+        self.sessionId = sessionId
+        self.runId = runId
+        self.taskName = taskName
+        self.bidsDir = bidsDir
+        self.speechType = speechType
+        self.languageElement = languageElement
+        self.startEnd = startEnd
+        self.eventType = eventType
+        self.trialPhase = trialPhase
+        self.presentationMode = presentationMode 
+        self.extactReleventEvents()
+
+    def checkIfEpochsFileExist(self):
+        filename, folder, destinationDir = getFolderAndDestination(
+            self.subjectId, self.sessionId, self.taskName,
+            self.runId, self.speechType, self.languageElement,
+            self.eventType, self.startEnd, self.trialPhase,
+            self.presentationMode
+        )
+        self.filename = filename
+        self.folder = folder
+        self.destinationDir = destinationDir
+
+        self.filepath = Path(self.destinationDir, filename)
+        if os.path.exists(self.filepath):
+            print(f"{Fore.YELLOW}🔍 Epochs file found.{Style.RESET_ALL}")
+            return True
+        else:
+            print(f"{Fore.YELLOW}🔍 Epochs file not found. Creating new epochs...{Style.RESET_ALL}")
+            return False
+
+    def extactReleventEvents(self):
+        if not self.checkIfEpochsFileExist():
+            self.neuralData = NeuralDatasetExtractor(
+                    subjectId=self.subjectId, sessionId=self.sessionId, runId=self.runId,
+                    taskName=self.taskName, bidsDir=self.bidsDir,
+                    speechType=self.speechType, languageElement=self.languageElement,
+                    eventType=self.eventType, trialPhase=self.trialPhase,
+                    presentationMode=self.presentationMode
+                )
+            self.epochsData = self.neuralData.epochsData
+        else:
+            print(f"{Fore.GREEN}📂 Loading existing epochs from {self.filepath}{Style.RESET_ALL}")
+            self.epochsData = mne.read_epochs(self.filepath, preload=True)
+
+def extractEpochsDataForAllSubjects():
+    subjectDirs = [d for d in os.listdir(config.BIDS_DIR) if d.startswith('sub')]
+
+    for subjectDir in subjectDirs:
+        subjectId = subjectDir.split('-')[1]
+        subjectDirPath = Path(config.BIDS_DIR, subjectDir)
+        sessionDirs = [d for d in os.listdir(subjectDirPath) if d.startswith('ses')]
+        for session in sessionDirs:
+            sessionId = session.split('-')[1]
+
+            try:
+                ExtractEpochs(
+                    subjectId=subjectId,
+                    sessionId=sessionId
+                )
+            except:
+                print(f'Error creating events file for sub-{subjectId}, ses-{sessionId}')
+
+
+class RealSilentData:
+    def __init__(self, subjectId, sessionId) -> None:
+        self.subjectId = subjectId
+        self.sessionId = sessionId
+        self.extractRealSilentEvents()
+
+    
+    def extractRealSilentEvents(self):
+       
+        result, filename, folder, destination = checkIfEpochsFileExist(
+            self.subjectId, self.sessionId
+        )
+        self.filename = filename
+        self.folder = folder
+        self.destinationDir = destination
+        if not result:
+            print('Error no Epochs File Found')
+        else:
+            self.filepath = Path(self.destinationDir, self.filename)
+            print(f"{Fore.GREEN}📂 Loading existing epochs from {self.filepath}{Style.RESET_ALL}")
+            self.epochsData = mne.read_epochs(self.filepath, preload=True)
+           
+            events = self.epochsData.events
+            eventIds = self.epochsData.event_id
+            eventIdsReversed = {str(value): key for key, value in eventIds.items()}
+
+            silentIndexes, realIndexes = [], []
+            for index in range(len(events)):
+                if 'Real' in eventIdsReversed[str(events[index][2])]:
+                    silentIndexes.append(index)
+                if 'Silent' in eventIdsReversed[str(events[index][2])]:
+                    realIndexes.append(index)
+            
+            self.realData = self.epochsData[realIndexes]
+            self.silentData = self.epochsData[silentIndexes]
 
 
 class VowelDataExtractor:
@@ -329,14 +392,17 @@ class VowelDataExtractor:
     """
 
     def __init__(self, 
-        subjectId='01', sessionId='01', runId='01', 
-        taskName='PilotStudy', bidsDir=config.bidsDir, 
-        speechType=config.speechType, 
-        languageElement=config.languageElement,
-        eventType=config.eventType, trialPhase=None, 
-        presentationMode=config.presentationMode,
-        groupCategories=['a', 'e', 'i', 'o', 'u']
-    ):
+        subjectId=None, sessionId=None, 
+            runId='01', taskName='PilotStudy', 
+            bidsDir=config.BIDS_DIR, 
+            speechType=config.SPEECH_TYPE, 
+            languageElement=config.LANGUAGE_ELEMENT,
+            startEnd = config.START_END,
+            eventType=config.EVENT_TYPE, 
+            trialPhase=config.TRIAL_PHASE, 
+            presentationMode=config.PRESENTATION_MODE,
+            groupCategories=['a', 'e', 'i', 'o', 'u']
+        ):
         printSectionHeader(" Initializing VowelDataExtractor ")
         
         self.subjectId = subjectId
@@ -346,6 +412,7 @@ class VowelDataExtractor:
         self.bidsDir = bidsDir
         self.speechType = speechType
         self.languageElement = languageElement
+        self.startEnd = startEnd
         self.eventType = eventType
         self.trialPhase = trialPhase
         self.presentationMode = presentationMode 
@@ -356,6 +423,8 @@ class VowelDataExtractor:
         self.loadEpochsData()
         self.displayGroupInfo()
         printSectionFooter("✅ VowelDataExtractor Initialization Complete ✅")
+        self.extractVowelData()
+        pdb.set_trace()
     
     def loadEpochsData(self):
         """
@@ -368,31 +437,33 @@ class VowelDataExtractor:
             None
         """
         start_time = time.time()
-        dataDir = config.dataDir
-        folder = f'{self.speechType}{self.languageElement}{self.eventType}{self.trialPhase}{self.presentationMode}'
-        filename = f"sub-{self.subjectId}_ses-{self.sessionId}_task-{self.taskName}_run-{self.runId}_epo.fif"
-        destinationDir = Path(dataDir, f'sub-{self.subjectId}', f'ses-{self.sessionId}', folder)
-        filepath = Path(destinationDir, filename)
-        self.groupFolder = folder
-
-        if not os.path.exists(filepath):
-            print(f"{Fore.YELLOW}🔍 Epochs file not found. Creating new epochs...{Style.RESET_ALL}")
-            self.neuralData = NeuralDatasetExtractor(
-                subjectId=self.subjectId, sessionId=self.sessionId, runId=self.runId,
-                taskName=self.taskName, bidsDir=self.bidsDir,
-                speechType=self.speechType, languageElement=self.languageElement,
-                eventType=self.eventType, trialPhase=self.trialPhase,
-                presentationMode=self.presentationMode
-            )
-            self.epochsData = self.neuralData.epochsData
-        else:
-            print(f"{Fore.GREEN}📂 Loading existing epochs from {filepath}{Style.RESET_ALL}")
-            self.epochsData = mne.read_epochs(filepath, preload=True)
+        epochsExtractor = ExtractEpochs(
+            subjectId=self.subjectId, sessionId=self.sessionId,
+        )
+        
+        self.epochsData = epochsExtractor.epochsData
 
         self.eventIds = self.epochsData.event_id
         self.eventIdsReversed = {value: key for key, value in self.eventIds.items()}
         duration = time.time() - start_time
         print(f"{Fore.YELLOW}⏱️ Time taken to load epochs: {timedelta(seconds=duration)}{Style.RESET_ALL}")
+
+    def extractVowelData(self):
+        start_time = time.time()
+        printSectionHeader(f"{Fore.MAGENTA}🔬 Extracting Vowels Data 🔬{Style.RESET_ALL}")
+        vowelIndexDict = {vowel: [] for vowel in self.groupCategories}
+        self.groupedData = {vowel: [] for vowel in self.groupCategories}
+
+        for index, (_, _, event_id) in enumerate(self.epochsData.events):
+            eventName = self.eventIdsReversed[event_id]
+            for vowel in self.groupCategories:
+                if eventName.lower().endswith(vowel.lower()):
+                    vowelIndexDict[vowel].append(index)
+                    break
+
+        for vowel in self.groupCategories:
+            self.groupedData[vowel] = self.epochsData[vowelIndexDict[vowel]].get_data(copy=True)
+            print(f"{Fore.CYAN}📊 Vowel {vowel}: shape {self.groupedData[vowel].shape}{Style.RESET_ALL}")
 
     def displayGroupInfo(self):
         """
@@ -404,124 +475,27 @@ class VowelDataExtractor:
         Returns:
             None
         """
-        printSectionHeader("ℹ️ Group Categories Information ℹ️")
-        print(f"🧑‍🤝‍🧑 Subject ID:               {self.subjectId}")
-        print(f"📅 Session ID:               {self.sessionId}")
-        print(f"🏃‍♂️ Run ID:                   {self.runId}")
-        print(f"📁 DataFolder:               {self.groupFolder}")
-        print(f"{Fore.MAGENTA}📊 Group Categories: {', '.join(self.groupCategories)}{Style.RESET_ALL}".ljust(60))
+        
+        printSectionHeader("ℹ️ Subject, Session, Task, and Run Information ℹ️")
+        
+        color = Fore.MAGENTA
+        size= '\033[4m'
+        
+        print(f"{color}{size}🧑‍🔬 Subject ID: {self.subjectId}".ljust(60))  
+        print(f"{color}\033[1m📅 Session ID: {self.sessionId}".ljust(60))   
+        print(f"{color}\033[1m🏃‍♂️ Run ID: {self.runId}".ljust(60))         
+        print(f"{color}\033[1m📝 Task Name: {self.taskName}".ljust(60))    
+        print(f"{color}\033[1m🔊 Speech Type: {self.speechType}".ljust(60)) 
+        print(f"{color}\033[1m🔤 Language Element: {self.languageElement}".ljust(60)) 
+        print(f"{color}\033[1m📊 Event Type: {self.eventType}".ljust(60)) 
+        print(f"{color}\033[1m⏳ Start/End: {self.startEnd}".ljust(60))   
+        print(f"{color}\033[1m⏳ Trial Phase: {self.trialPhase}".ljust(60))   
+        print(f"{color}\033[1m🖥️ Presentation Mode: {self.presentationMode}".ljust(60)) 
+         
+       
         printSectionFooter("✅ Group Information Display Complete ✅")
 
-    def computeMorletFeatures(self):
-        """
-        Compute Morlet wavelet features for the epoched data.
-
-        This method calculates time-frequency representations using Morlet wavelets
-        for the epoched data across the specified frequency range.
-
-        Returns:
-            None
-        """
-        start_time = time.time()
-        printSectionHeader(f"{Fore.CYAN}🌊 Computing Morlet Features 🌊{Style.RESET_ALL}")
-        self.morletFeatures = self.epochsData.compute_tfr(
-            method='morlet',
-            freqs=self.frequencyRange,
-            n_cycles=self.frequencyRange/8,
-            use_fft=True,
-            return_itc=False,
-            average=False
-        )
-        print(f"{Fore.GREEN}✨ Computed Morlet features for {len(self.morletFeatures)} epochs{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}📊 Shape: {self.morletFeatures.get_data().shape}{Style.RESET_ALL}")
-        duration = time.time() - start_time
-        print(f"{Fore.YELLOW}⏱️ Time taken to compute Morlet features: {timedelta(seconds=duration)}{Style.RESET_ALL}")
-        printSectionFooter(f"{Fore.GREEN}✅ Morlet Feature Computation Complete ✅{Style.RESET_ALL}")
-
-    def categorizeDataByVowels(self):
-        """
-        Categorize Morlet and raw features for each vowel group.
-
-        This method separates the computed Morlet features and raw data into groups
-        based on the specified vowel categories (a, e, i, o, u).
-
-        Returns:
-            None
-        """
-        start_time = time.time()
-        printSectionHeader(f"{Fore.MAGENTA}🔬 Categorizing Features by Vowels 🔬{Style.RESET_ALL}")
-        vowelIndexDict = {vowel: [] for vowel in self.groupCategories}
-        self.groupedMorletData = {vowel: [] for vowel in self.groupCategories}
-        self.groupedRawData = {vowel: [] for vowel in self.groupCategories}
-
-        for index, (_, _, event_id) in enumerate(self.morletFeatures.events):
-            eventName = self.eventIdsReversed[event_id]
-            for vowel in self.groupCategories:
-                if eventName.lower().endswith(vowel.lower()):
-                    vowelIndexDict[vowel].append(index)
-                    break
-
-        for vowel in self.groupCategories:
-            if self.morletFeatures:
-                self.groupedMorletData[vowel] = self.morletFeatures[vowelIndexDict[vowel]].get_data()
-            self.groupedRawData[vowel] = self.epochsData[vowelIndexDict[vowel]].get_data()
-            print(f"{Fore.CYAN}📊 Vowel {vowel}: Morlet shape {self.groupedMorletData[vowel].shape}, Raw shape {self.groupedRawData[vowel].shape}{Style.RESET_ALL}")
-
-        print(f"{Fore.MAGENTA} Categorized data for vowels: {', '.join(self.groupCategories)}{Style.RESET_ALL}")
-        duration = time.time() - start_time
-        print(f"{Fore.YELLOW}⏱️ Time taken to categorize data by vowels: {timedelta(seconds=duration)}{Style.RESET_ALL}")
-        printSectionFooter("✅ Vowel Data Categorization Complete ✅")
-
-    def makeTrainDataset(self, test_size=0.3):
-        """
-        Create training and testing datasets from the extracted features.
-
-        This method combines the grouped data, adjusts the time window, and splits
-        the data into training and testing sets for both Morlet and raw features.
-
-        Args:
-            test_size (float): The proportion of the dataset to include in the test split.
-
-        Returns:
-            None
-        """
-        start_time = time.time()
-        printSectionHeader(f"{Fore.YELLOW}🚂 Creating Training Dataset 🚂{Style.RESET_ALL}")
-        morlet_features, raw_features, labels = [], [], []
-
-        for index, group in enumerate(self.groupCategories):
-            morlet_data = self.groupedMorletData[group]
-            raw_data = self.groupedRawData[group]
-            
-            morlet_features.append(morlet_data)
-            raw_features.append(raw_data)
-            labels.extend([index] * len(morlet_data))
-            
-            print(f"{Fore.MAGENTA} Group {group}: Morlet shape {morlet_data.shape}, Raw shape {raw_data.shape}{Style.RESET_ALL}")
-
-        self.morletFeatures = np.concatenate(morlet_features)
-        self.rawFeatures = np.concatenate(raw_features)
-        self.labels = np.array(labels)
-
-        # Adjust time window
-        time_start = int(abs(config.tmin * 1000))
-        self.morletFeatures = self.morletFeatures[:, :, :, time_start:]
-        self.rawFeatures = self.rawFeatures[:, :, time_start:]
-
-        # Split into train and test sets
-        from sklearn.model_selection import train_test_split
-        self.X_train_morlet, self.X_test_morlet, self.X_train_raw, self.X_test_raw, self.y_train, self.y_test = train_test_split(
-            self.morletFeatures, self.rawFeatures, self.labels, test_size=test_size, stratify=self.labels, random_state=42
-        )
-
-        print(f"{Fore.GREEN}✅ Dataset created with {len(self.labels)} samples{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}📊 Morlet features shape: {self.morletFeatures.shape}{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}📊 Raw features shape: {self.rawFeatures.shape}{Style.RESET_ALL}")
-        duration = time.time() - start_time
-        print(f"{Fore.YELLOW}⏱️ Time taken to create training dataset: {timedelta(seconds=duration)}{Style.RESET_ALL}")
-        printSectionFooter("✅ Dataset Creation Complete ✅")
-
-    def process_data(self):
+   
         """
         Execute the complete data processing pipeline.
 

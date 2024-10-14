@@ -2,22 +2,24 @@ import os
 import csv
 import time
 import numpy as np
+import pandas as pd
 from pathlib import Path
 from colorama import Fore, Style, init
+
 from mne_bids import BIDSPath, write_raw_bids
 from pyxdf import resolve_streams, match_streaminfos
 from mnelab.io.xdf import read_raw_xdf
-
 from scipy.io.wavfile import write
 
 from src.utils.utils import printSectionHeader, printSectionFooter
 import src.utils.config as config
 import pdb
-import pandas as pd
+
 
 
 # Initialize colorama for cross-platform color support
-init()
+
+init(autoreset=True)
 
 class XDFData:
     """
@@ -65,14 +67,15 @@ class XDFData:
         self.rawData = None
         self.eegSamplingFrequency = 1000
         self.audioSamplingFrequency = 48000
-        self.destinationDir = Path(f'{config.bidsDir}/sub-{self.subjectId}/ses-{self.sessionId}')
+        self.destinationDir = Path(f'{config.BIDS_DIR}/sub-{self.subjectId}/ses-{self.sessionId}')
         self.fileName = f'sub-{self.subjectId}_ses-{self.sessionId}_task-{self.taskName}_run-{self.runId}'
         
         self.bidsPath = BIDSPath(
             subject=self.subjectId, session=self.sessionId,
-            task=self.taskName, run=self.runId, datatype='eeg', root=config.bidsDir
+            task=self.taskName, run=self.runId, datatype='eeg', 
+            root=config.BIDS_DIR
         ) 
-        printSectionFooter('✅  Initializing Complete  ✅'.center(config.terminalWidth))
+        printSectionFooter('✅  Initializing Complete  ✅'.center(config.TERMINAL_WIDTH))
 
          
         self.loadXdfData()
@@ -102,13 +105,13 @@ class XDFData:
         eegStreamId = match_streaminfos(streams, [{'type':'EEG'}])[0]
         audioStreamId = match_streaminfos(streams, [{'type':'Audio'}])[0]
         
-        print(f'{Fore.CYAN}📊 Loading EEG stream...'.ljust(config.terminalWidth), end='')
+        print(f'{Fore.CYAN}📊 Loading EEG stream...'.ljust(config.TERMINAL_WIDTH), end='')
         eegStart = time.time()
         self.eegData = read_raw_xdf(self.filePath, stream_ids=[eegStreamId])
         eegTime = time.time() - eegStart
         print(f'✅ Done in {eegTime:.2f} seconds')
         
-        print(f'{Fore.CYAN}🎵 Loading Audio stream...'.ljust(config.terminalWidth), end='')
+        print(f'{Fore.CYAN}🎵 Loading Audio stream...'.ljust(config.TERMINAL_WIDTH), end='')
         audioStart = time.time()
         self.audioData = read_raw_xdf(self.filePath, stream_ids=[audioStreamId])
         audioTime = time.time() - audioStart
@@ -130,14 +133,14 @@ class XDFData:
         
         startTime = time.time()
         
-        print(f'{Fore.CYAN}🔄 Setting channel types...'.ljust(config.terminalWidth), end='')
+        print(f'{Fore.CYAN}🔄 Setting channel types...'.ljust(config.TERMINAL_WIDTH), end='')
         channelTypeStart = time.time()
         channelTypes = {'Fp1':'eog', 'Fp2':'eog'}
         self.eegData.set_channel_types(channelTypes)
         channelTypeTime = time.time() - channelTypeStart
         print(f'✅ Done in {channelTypeTime:.2f} seconds')
         
-        print(f'{Fore.CYAN}📊 Resampling EEG data to {self.eegSamplingFrequency} Hz...'.ljust(config.terminalWidth), end='')
+        print(f'{Fore.CYAN}📊 Resampling EEG data to {self.eegSamplingFrequency} Hz...'.ljust(config.TERMINAL_WIDTH), end='')
         eegResampleStart = time.time()
         self.eegData.resample(self.eegSamplingFrequency)
         eegResampleTime = time.time() - eegResampleStart
@@ -165,15 +168,15 @@ class XDFData:
         print(f"{Fore.YELLOW}⏱️  EEG Sample Rate: {self.eegSamplingFrequency} Hz")
         print(f"{Fore.YELLOW}⏱️  Audio Sample Rate: {self.audioSamplingFrequency} Hz")
         print(f"{Fore.CYAN}{Style.BRIGHT}")
-        print(f"👤 {'Subject ID:':<25} {self.subjectId}".center(config.terminalWidth))
-        print(f"🔢 {'Session ID:':<25} {self.sessionId}".center(config.terminalWidth))
-        print(f"🏃 {'Run ID:':<25} {self.runId}".center(config.terminalWidth))
-        print(f"📝 {'Task Name:':<25} {self.taskName}".center(config.terminalWidth))
+        print(f"👤 {'Subject ID:':<25} {self.subjectId}".center(config.TERMINAL_WIDTH))
+        print(f"🔢 {'Session ID:':<25} {self.sessionId}".center(config.TERMINAL_WIDTH))
+        print(f"🏃 {'Run ID:':<25} {self.runId}".center(config.TERMINAL_WIDTH))
+        print(f"📝 {'Task Name:':<25} {self.taskName}".center(config.TERMINAL_WIDTH))
         print(f"{Style.RESET_ALL}")
-        print(f'🗂️  BIDS Path:{self.bidsPath}'.center(config.terminalWidth))
-        print(f'📁 Destination Directory:{self.destinationDir}'.center(config.terminalWidth))
-        print(f'📄 File Name:{self.fileName}'.center(config.terminalWidth))
-        print(f"{Fore.MAGENTA}{'*' * config.terminalWidth}{Style.RESET_ALL}")
+        print(f'🗂️  BIDS Path:{self.bidsPath}'.center(config.TERMINAL_WIDTH))
+        print(f'📁 Destination Directory:{self.destinationDir}'.center(config.TERMINAL_WIDTH))
+        print(f'📄 File Name:{self.fileName}'.center(config.TERMINAL_WIDTH))
+        print(f"{Fore.MAGENTA}{'*' * config.TERMINAL_WIDTH}{Style.RESET_ALL}")
 
     def createAudio(self):
         """
@@ -198,7 +201,7 @@ class XDFData:
         dirCreateTime = time.time() - dirCreateStart
         print(f'{Fore.GREEN}✅ Directory created in {dirCreateTime:.2f} seconds')
         
-        print(f'{Fore.CYAN}🔍 Extracting audio data...'.ljust(config.terminalWidth), end='')
+        print(f'{Fore.CYAN}🔍 Extracting audio data...'.ljust(config.TERMINAL_WIDTH), end='')
         extractStart = time.time()
         audioData = self.audioData.get_data()
         audioData = audioData.flatten()
@@ -214,7 +217,7 @@ class XDFData:
         
         destinationPath = destinationDir / f'{self.fileName}_audio.wav'
         print(f"{Fore.CYAN}💾 Saving audio file to: {destinationPath}")
-        print(f'{Fore.CYAN}📝 Writing audio file...'.ljust(config.terminalWidth), end='')
+        print(f'{Fore.CYAN}📝 Writing audio file...'.ljust(config.TERMINAL_WIDTH), end='')
         writeStart = time.time()
         write(str(destinationPath), self.audioSamplingFrequency, audioData)
         writeTime = time.time() - writeStart
@@ -265,13 +268,13 @@ class XDFData:
         
         fileNameWithPath = destinationDir / fileName
         
-        print(f'{Fore.CYAN}🔍 Extracting annotations...'.ljust(config.terminalWidth), end='')
+        print(f'{Fore.CYAN}🔍 Extracting annotations...'.ljust(config.TERMINAL_WIDTH), end='')
         annotationStart = time.time()
         annotations = self.audioData.annotations
         annotationTime = time.time() - annotationStart
         print(f'✅ Done in {annotationTime:.2f} seconds')
         
-        print(f'{Fore.CYAN}📝 Writing events to file...'.ljust(config.terminalWidth), end='')
+        print(f'{Fore.CYAN}📝 Writing events to file...'.ljust(config.TERMINAL_WIDTH), end='')
         writeStart = time.time()
         with open(fileNameWithPath, "w", newline="") as tsvFile:
             writer = csv.writer(tsvFile,  delimiter='\t')
@@ -309,9 +312,10 @@ class XDFData:
         printSectionHeader(f"{Fore.CYAN}📊 Creating BIDS EDF File 📊")
         
         startTime = time.time()
-        uniqueAnnotations = set(self.eegData.annotations.descriptions)
+        uniqueAnnotations = set(self.eegData.annotations.description)
         eventId = {desc: i+1 for i, desc in enumerate(uniqueAnnotations)}
-        print(f'{Fore.CYAN}📝 Writing EEG data to EDF...'.ljust(config.terminalWidth), end='')
+        
+        print(f'{Fore.CYAN}📝 Writing EEG data to EDF...'.ljust(config.TERMINAL_WIDTH), end='')
         writeStart = time.time()
         write_raw_bids(
             self.eegData, 
@@ -369,6 +373,7 @@ def createBIDSDataset(csvFilePath):
                     sessionId=sessionId
                 )
                 print(f"{Fore.GREEN}✅ Successfully processed: Subject {subjectId}, Session {sessionId}")
+                xdfData.printInfo()
             except Exception as e:
                 print(f"{Fore.RED}❌ Error processing: Subject {subjectId}, Session {sessionId}")
                 print(f"{Fore.RED}❗ Error: {str(e)}")

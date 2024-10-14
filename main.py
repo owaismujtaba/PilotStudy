@@ -5,29 +5,45 @@ import tensorflow as tf
 from pathlib import Path
 from colorama import Fore, Style, init
 
-from src.models.models import RandomForestModel, NNModel, DualInputNeuralNetwork
+from src.models.models import RandomForestModel,  DualInputNeuralNetwork
 from src.models.trainer import ModelTrainer
-from src.data.bids_dataset import createBIDSDataset
-from src.data.data_extractor import VowelDataExtractor
+from src.dataset.data_extractor import VowelDataExtractor
 import src.utils.config as config
 from src.utils.utils import printSectionFooter, printSectionHeader
 from src.utils.utils import normalize_data
 
 import pdb
 
+
+
 init(autoreset=True)
+
+if config.extractEpochsData:
+    from src.dataset.data_extractor import extractEpochsDataForAllSubjects
+    extractEpochsDataForAllSubjects()
+
+if config.createBIDSFile:
+    from src.dataset.bids_dataset import createBIDSDataset
+    filePath = '/home/owaismujtaba/projects/PilotStudy/files.csv'
+    createBIDSDataset(csvFilePath=filePath)
 
 
 if config.visualization:
     from src.utils.visualization import plotVowelActivityAllSubjects
+    from src.dataset.data_extractor import VowelDataExtractor
+    from src.utils.visualization import plotRealSilentAverageActivityAllSubjects
 
-    plotVowelActivityAllSubjects()
+    plotRealSilentAverageActivityAllSubjects()
+    #VowelDataExtractor(subjectId='01', sessionId='01')=
+
+    #plotVowelActivityAllSubjects()
 
 
 
 
 
 if config.trainModels:
+    from src.dataset.data_extractor import VowelDataExtractor
     printSectionHeader('  Starting Model Training Process  '.center(60))
 
     file = pd.read_csv('/home/owaismujtaba/projects/PilotStudy/files.csv')
@@ -49,7 +65,7 @@ if config.trainModels:
             subjectId = str(subjectId)
         sessionId = f'0{sessionId}'
 
-        dataExtractor = GroupDataExtractor(
+        dataExtractor = VowelDataExtractor(
             subjectId=subjectId,
             sessionId=sessionId,
             taskName='PilotStudy',
@@ -93,44 +109,6 @@ if config.trainModels:
         print('\n' + '*' * 60)
         print('✅  Model Training Process Complete  ✅'.center(60))
         print('*' * 60 + '\n')
-
-if config.loadData:
-    printSectionHeader('  Starting Data Extraction  '.center(60))
-
-    import pandas as pd
-
-    file = pd.read_csv('/home/owaismujtaba/projects/PilotStudy/files.csv')
-
-    subjects = file['subject'].values
-    sessions = file['session'].values
-    for index in range(len(sessions)):
-        subjectId = subjects[index]
-        sessionId = sessions[index]
-        
-        if subjectId< 10:
-            subjectId = f'0{subjectId}'
-        else:
-            subjectId = str(subjectId)
-        sessionId = f'0{sessionId}'
-        data = GroupDataExtractor(
-            subjectId=subjectId,
-            sessionId=sessionId,
-            runId=runId,
-            taskName='PilotStudy',
-            speechType='Real',
-            languageElement='Experiment',
-            eventType='Start',
-            trialPhase=None,
-            presentationMode='Speech'
-        )
-
-    printSectionFooter('✅  Data Extraction Complete  ✅')
-
-    printSectionFooter('✅  Syllable and Word Data Extraction Complete  ✅')
-
-if config.createBIDSFile:
-    filePath = '/home/owaismujtaba/projects/PilotStudy/files.csv'
-    createBIDSDataset(csvFilePath=filePath)
 
 
     
